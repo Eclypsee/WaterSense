@@ -83,15 +83,13 @@
  */
 #define SONAR_EN GPIO_NUM_33
 
-#define GPS_RX GPIO_NUM_16 ///< GPS receive pin
-#define GPS_TX GPIO_NUM_17 ///< GPS transmit pin
-
 /**
- * @brief GPS enable pin
- * @details GPS measurements are disabled when this pin is pulled low
+ * @brief GNSS I2C transmission pins
+ * @details Used to communicate with GNSS
  * 
  */
-#define GPS_EN GPIO_NUM_27
+#define SDA GPIO_NUM_21
+#define SCL GPIO_NUM_22
 
 #define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
 

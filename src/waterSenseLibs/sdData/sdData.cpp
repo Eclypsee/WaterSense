@@ -112,6 +112,39 @@ File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, String time)
     return file;
 }
 
+
+void SD_Data :: createGNSSFile() 
+
+{ 
+  // Create or open a file called "RXM_RAWX.ubx" on the SD card. 
+  // If the file already exists, the new data is appended to the end of the file. 
+
+ 
+
+  SD.mkdir("/GNSS_Data"); 
+
+  String fileName = "/GNSS_Data/"; 
+
+  fileName += String(wakeCounter, HEX); 
+
+  fileName += "_"; 
+
+  fileName += String(millis(), HEX); 
+
+  fileName += ".ubx"; 
+
+  File dataFile = SD.open(fileName, FILE_WRITE); 
+
+  if (!dataFile) 
+
+  { 
+
+    Serial.println("Failed to create UBX data file! Freezing..."); 
+
+  } 
+
+} 
+
 /**
  * @brief A method to write a log message to the SD card
  * 
