@@ -25,6 +25,7 @@ void taskSD(void* params)
 {
   SD_Data mySD(GPIO_NUM_5);
   File myFile;
+  File GNSS;
 
   // Task Setup
   uint8_t state = 0;

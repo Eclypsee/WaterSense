@@ -30,7 +30,7 @@ class SD_Data
         File createFile(bool hasFix, uint32_t wakeCounter, String time);
 
         // A method to write raw satellite data to .ubx files
-        void createGNSSFile();
+        File createGNSSFile();
 
         /// A method to write a log message
         void writeLog(String unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude);

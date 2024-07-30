@@ -113,7 +113,7 @@ File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, String time)
 }
 
 
-void SD_Data :: createGNSSFile() 
+File SD_Data :: createGNSSFile() 
 
 { 
   // Create or open a file called "RXM_RAWX.ubx" on the SD card. 

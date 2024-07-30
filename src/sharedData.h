@@ -35,6 +35,7 @@ extern Share<bool> clockSleepReady;
 extern Share<bool> sonarSleepReady;
 extern Share<bool> tempSleepReady;
 extern Share<bool> sdSleepReady;
+extern Share<bool> gnssDataReady;
 
 // Shares from GPS Clock
 extern Share<float> latitude;
@@ -50,6 +51,10 @@ extern Share<uint64_t> sleepTime;
 extern Share<int16_t> distance;
 extern Share<float> temperature;
 extern Share<float> humidity;
+
+//Shares from GNSS
+extern Share<int> numSFRBX;
+extern Share<int> numRAWX;
 
 // Duty Cycle
 extern Share<float> solar;

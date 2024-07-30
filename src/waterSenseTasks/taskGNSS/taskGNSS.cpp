@@ -1,10 +1,15 @@
-#include <SPI.h> 
-#include <Wire.h> 
-#include <SD.h>
-#include <iostream> 
-#include <SparkFun_u-blox_GNSS_Arduino_Library.h> 
+/**
+ * @file taskSD.cpp
+ * @author Toma Grundler and Armaan Oberai
+ * @brief Main file for the GNSS task
+ * @version 0.1
+ * @date 2024-07-26
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 
-SFE_UBLOX_GNSS gnss; 
+#include "waterSenseLibs/zedGNSS/zedGNSS.h"
 
  
 
@@ -188,7 +193,8 @@ void setup()
 
  
 
-  gnss.getTimeDOP(); 
+  gnss.getTimeDOP();
+  
 
  
 
@@ -368,11 +374,11 @@ void loop()
 
  
 
-    Serial.print(F("Num of files: ")); // Print how many times we have written files to the SD card 
+    Serial.print(F("Num of Wakeups: ")); // Print how many times we have written files to the SD card 
 
  
 
-    Serial.println(numFile); 
+    Serial.println(wakeCounter); 
 
  
 
