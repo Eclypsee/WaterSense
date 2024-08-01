@@ -9,4 +9,8 @@
  * 
  */
 
+#define SCL 22 
+#define SDA 21 
+#define CLK 400000
+
 void taskClock2(void* params);

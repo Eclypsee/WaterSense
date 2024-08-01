@@ -10,6 +10,8 @@
  */
 
 #include "waterSenseLibs/shares/taskshare.h"
+#include "waterSenseLibs/shares/taskqueue.h"
+#include "setup.h"
 
 
 //-----------------------------------------------------------------------------------------------------||
@@ -37,12 +39,12 @@ extern Share<bool> tempSleepReady;
 extern Share<bool> sdSleepReady;
 extern Share<bool> gnssDataReady;
 
-// Shares from GPS Clock
-extern Share<float> latitude;
-extern Share<float> longitude;
-extern Share<float> altitude;
+// Shares from GNSS
+extern Share<int32_t> latitude;
+extern Share<int32_t> longitude;
+extern Share<int32_t> altitude;
 extern Share<uint8_t> fixType;
-extern Share<String> unixTime;
+extern Share<uint32_t> unixTime;
 extern Share<String> displayTime;
 extern Share<bool> wakeReady;
 extern Share<uint64_t> sleepTime;
@@ -55,6 +57,8 @@ extern Share<float> humidity;
 //Shares from GNSS
 extern Share<int> numSFRBX;
 extern Share<int> numRAWX;
+extern Queue<uint8_t> writeBuffer(sdWriteSize * 4);
+extern Share<GNSS> myGNSS;
 
 // Duty Cycle
 extern Share<float> solar;

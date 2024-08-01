@@ -10,26 +10,21 @@
  */
 
 #include "waterSenseLibs/zedGNSS/zedGNSS.h"
+#include "taskGNSS.h"
+#include "setup.h"
+#include "sharedData.h"
+
 
  
 
-#define SCL 22 
-
-#define SDA 21 
-
 #define CS 5 
-
-#define CLK 400000
 
  
 
 File dataFile; 
-
-#define sdWriteSize 512      // Write data to the SD card in blocks of 512 bytes 
-
 #define fileBufferSize 16384 // Allocate 16KBytes of RAM for UBX message storage 
 
-uint8_t *myBuffer;           // Use myBuffer to hold the data while we write it to SD card 
+uint8_t myBuffer[sdWriteSize];           // Use myBuffer to hold the data while we write it to SD card 
 
  
 
@@ -49,29 +44,22 @@ int numFile = 0;  // Keep count of how many times we have written to the SD card
 
  
 
-void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct) 
-
-{ 
-
-  numSFRBX++; // Increment the count 
-
-} 
-
- 
-
-void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct) 
-
-{ 
-
-  numRAWX++; // Increment the count 
-
-} 
-
- 
 
 
+void taskGNSS(void *params) {
+  myGNSS.put(GNSS(SDA, SCL, CLK));
+  
+  //init
+  myGNSS.get().begin();
 
- 
+  //state setup
+  uint8_t state = 0;
+
+  //task loop
+  while(true) {
+
+  }
+}
 
 void setup() 
 
@@ -246,8 +234,6 @@ void setup()
 
  
 
-  myBuffer = new uint8_t[sdWriteSize]; // Create our own buffer to hold the data while we write it to SD card 
-
  
 
   Serial.println(F("Press x to stop logging.")); 
@@ -298,8 +284,11 @@ void loop()
 
  
 
-    gnss.extractFileBufferData(myBuffer, sdWriteSize); // Extract exactly sdWriteSize bytes from the UBX file buffer and put them into myBuffer 
+    gnss.extractFileBufferData(myBuffer, sdWriteSize); // Extract exactly sdWriteSize bytes from the UBX file buffer and put them into myBuffer
 
+    for(int i = 0; i <= sdWriteSize; i += 8) {
+        writeBuffer.put(myBuffer[i]);
+    }
  
 
     dataFile.write(myBuffer, sdWriteSize); // Write exactly sdWriteSize bytes from myBuffer to the ubxDataFile on the SD card 

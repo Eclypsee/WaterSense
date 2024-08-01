@@ -45,6 +45,7 @@ void taskSD(void* params)
         }
 
         myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
+        GNSS = mySD.createGNSSFile();
 
         state = 1;
       }
@@ -65,6 +66,13 @@ void taskSD(void* params)
       {
         state = 3;
       }
+
+      // If gnssDataFlag is tripped, go to state 5
+      if (gnssDataReady.get()) 
+      {
+        gnssDataReady.put(false);
+        state = 5;
+      }
     }
 
     // Store data
@@ -83,7 +91,7 @@ void taskSD(void* params)
       float solarVoltage = solar.get();
       float batteryVoltage = battery.get();
 
-      String myTime = unixTime.get();
+      u_int32_t myTime = unixTime.get();
 
       // Write data to SD card
       mySD.writeData(myFile, myDist, myTime, myTemp, myHum, batteryVoltage, solarVoltage);
@@ -103,7 +111,7 @@ void taskSD(void* params)
       if (fixType.get())
       {
         Serial.printf("Writing log file Time: %s\n", displayTime.get());
-        String tim = unixTime.get();
+        uint32_t tim = unixTime.get();
         float lat = latitude.get();
         float lon = longitude.get();
         float alt = altitude.get();

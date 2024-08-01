@@ -84,19 +84,19 @@ void SD_Data :: writeHeader()
  * @param time The current unix timestamp
  * @return The opened file
  */
-File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, String time)
+File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
 {
     String fileName = "/Data/";
 
     // Filenames are at most 8 characters + 6("/Data/") + 4(".txt") + null terminator = 19
     if (hasFix) // If the gps has a fix, use its timestamp
     {
-        fileName += String(time.toInt(), HEX);
+        fileName += String(time, HEX);
         fileName += ".txt";
     }
     else if (lastKnownUnix) // If we have switched over to the RTC, use it
     {
-        fileName += String(time.toInt(), HEX);
+        fileName += String(time, HEX);
         fileName += ".txt";
     }
     else // If no GPS fix, use wake counter
@@ -154,7 +154,7 @@ File SD_Data :: createGNSSFile()
  * @param longitude The longitude as measured by the GPS
  * @param altitude The altitude as measured by the GPS
  */
-void SD_Data :: writeLog(String unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude)
+void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude)
 {
     //Open log file and write to it
     File logFile = SD.open("/logFile.txt", FILE_WRITE);
@@ -178,7 +178,24 @@ void SD_Data :: writeLog(String unixTime, uint32_t wakeCounter, float latitude, 
  * @param solarVoltage Voltage of solar panel
  * @return sensorData An object containing all of the data
  */
-void SD_Data :: writeData(File &dataFile, int32_t distance, String unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
+void SD_Data :: writeData(File &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
+{
+    dataFile.print(unixTime);
+    dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, temperature, humidity, batteryVoltage, solarVoltage);
+}
+
+/**
+ * @brief A method to take a write GNSS data to the SD card
+ * 
+ * @param data_file A reference to the data file to be written to
+ * @param distance The distance measured by the SONAR sensor
+ * @param unixTime The unix timestamp for when the data was recorded
+ * @param temperature The current temperature measured by the temperature and humidity sensor
+ * @param humidity The current humidity measured by the temperature and humidity sensor
+ * @param solarVoltage Voltage of solar panel
+ * @return sensorData An object containing all of the data
+ */
+void SD_Data :: writeGNSSData(File &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
 {
     dataFile.print(unixTime);
     dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, temperature, humidity, batteryVoltage, solarVoltage);

@@ -10,15 +10,15 @@
 
 #include "zedGNSS.h"
 
-
-
-GNSS :: GNSS(void) {
-
+GNSS :: GNSS(int sda, int scl, int clk) {
+  this->sda = sda;
+  this->scl = scl;
+  this->clk = clk;
 }
 
 void GNSS :: begin() {
-    Wire.begin(SDA, SCL); 
-    Wire.setClock(CLK);
+    Wire.begin(this->sda, this->scl); 
+    Wire.setClock(this->clk);
     while (Serial.available()) // Make sure the Serial buffer is empty 
     { 
 
@@ -54,7 +54,28 @@ void GNSS :: begin() {
     gnss.logRXMRAWX(); // Enable RXM RAWX data logging 
     gnss.setHighPrecisionMode();
     gnss.getTimeDOP();
+    
+    unixTime.put(gnss.getUnixEpoch());
+    displayTime.put(this->getDisplayTime());
+    altitude.put(gnss.getAltitude());
+    latitude.put(gnss.getLatitude());
+    longitude.put(gnss.getLongitude());
+    fixType.put(gnss.getFixType());
+    wakeReady.put(gnss.getGnssFixOk());
 }
+
+String GNSS :: getDisplayTime() {
+  char buffer[30]; // Buffer to hold the formatted string
+  snprintf(buffer, sizeof(buffer), "%02u %02u %04u   %02u:%02u:%02u:%03u",
+             gnss.getMonth(), gnss.getDay(), gnss.getYear(),
+             gnss.getHour(), gnss.getMinute(), gnss.getSecond(), gnss.getMillisecond());
+  return buffer;
+}
+
+SFE_UBLOX_GNSS GNSS :: getGNSS() {
+  return gnss;
+}
+
 
 void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct) 
 { 
@@ -65,12 +86,3 @@ void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct)
 { 
   numRAWX.put(numRAWX.get() + 1); // Increment the count 
 } 
-
-String GNSS :: getDisplayTime() {
-  char buffer[30]; // Buffer to hold the formatted string
-  snprintf(buffer, sizeof(buffer), "%02u %02u %04u   %02u:%02u:%02u:%03u",
-             gnss.getMonth(), gnss.getDay(), gnss.getYear(),
-             gnss.getHour(), gnss.getMinute(), gnss.getSecond(), gnss.getMillisecond());
-  return buffer;
-}
- 

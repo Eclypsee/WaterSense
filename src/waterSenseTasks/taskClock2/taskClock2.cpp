@@ -14,6 +14,7 @@
 #include "setup.h"
 #include "sharedData.h"
 #include "waterSenseLibs/gpsClock/gpsClock.h"
+#include "waterSenseLibs/zedGNSS/zedGNSS.h"
 
 /**
  * @brief The clock task
@@ -23,12 +24,10 @@
  */
 void taskClock2(void* params)
 {
-  GpsClock myGPS(&Serial2, GPS_RX, GPS_TX, GPS_EN);
-  Adafruit_GPS myClock = myGPS.begin();
+  myGNSS.put(GNSS(SDA, SCL, CLK));
   ESP32Time myRTC(1);
 
-  myGPS.lastGpsUnix = lastKnownUnix;
-  myGPS.internalStart = unixRtcStart;
+  lastKnownUnix = myGNSS.get().getGNSS().getUnixEpoch();
 
   uint8_t state = 0;
 

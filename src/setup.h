@@ -20,6 +20,13 @@
 //#define CONTINUOUS
 
 /**
+ * @brief Define this constant to enable standalone GNSS measurements (no sonar or temp)
+ * @details Writes data to the SD card with minimal sleep time
+ * 
+ */
+//#define STANDALONE
+
+/**
  * @brief Define this constant to enable variable duty cycle
  * @details If undefined, HI_READ and HI_ALLIGN are used
  * 
@@ -56,6 +63,8 @@
 #define R1s 10.0 ///< Resistor for solar panel voltage divider
 #define R2s 10.0 ///< Resistor for solar panel voltage divider
 
+#define sdWriteSize 512 ///<Write data to the SD card in blocks of 512 bytes 
+
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||
 
@@ -88,8 +97,6 @@
  * @details Used to communicate with GNSS
  * 
  */
-#define SDA GPIO_NUM_21
-#define SCL GPIO_NUM_22
 
 #define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
 
