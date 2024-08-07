@@ -58,18 +58,21 @@ void taskVoltage(void* params)
         {
           READ_TIME.put(LOW_READ);
           MINUTE_ALLIGN.put(LOW_ALLIGN);
+          gnssPowerSave.put(true);
         }
 
         else if (batteryVoltage < 3.2)
         {
           READ_TIME.put(MID_READ);
           MINUTE_ALLIGN.put(MID_ALLIGN);
+          GNSS_READ_TIME.put(GNSS_MID_READ);
         }
 
         else
         {
           READ_TIME.put(HI_READ);
           MINUTE_ALLIGN.put(HI_ALLIGN);
+          GNSS_READ_TIME.put(GNSS_HI_READ);
         }
       #endif
     }

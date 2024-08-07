@@ -188,17 +188,11 @@ void SD_Data :: writeData(File &dataFile, int32_t distance, uint32_t unixTime, f
  * @brief A method to take a write GNSS data to the SD card
  * 
  * @param data_file A reference to the data file to be written to
- * @param distance The distance measured by the SONAR sensor
- * @param unixTime The unix timestamp for when the data was recorded
- * @param temperature The current temperature measured by the temperature and humidity sensor
- * @param humidity The current humidity measured by the temperature and humidity sensor
- * @param solarVoltage Voltage of solar panel
- * @return sensorData An object containing all of the data
+ * @param buffer A reference to the block of data to be written to the .ubx file
  */
-void SD_Data :: writeGNSSData(File &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
+void SD_Data :: writeGNSSData(File &dataFile, uint8_t buffer[SIZE])
 {
-    dataFile.print(unixTime);
-    dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, temperature, humidity, batteryVoltage, solarVoltage);
+    dataFile.write(buffer, SIZE);
 }
 
 /**

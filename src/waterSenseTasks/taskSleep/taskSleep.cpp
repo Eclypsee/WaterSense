@@ -55,7 +55,10 @@ void taskSleep(void* params)
     {
       // If runTimer, go to state 2
       uint16_t myReadTime = READ_TIME.get();
-      if ((millis() - runTimer) > myReadTime*1000)
+      #ifdef STANDALONE
+        myReadTime = GNSS_READ_TIME.get();
+      #endif
+      if (((millis() - runTimer) > myReadTime*1000) && gnssSleepReady.get())
       {
         Serial.printf("Sleep state 1 -> 2 Time: %s\n", displayTime.get());
 
@@ -68,6 +71,10 @@ void taskSleep(void* params)
     // Initiate Sleep
     else if (state == 2)
     {
+      #ifdef STANDALONE
+        sonarSleepReady.put(true);
+        tempSleepReady.put(true);
+      #endif
       // If all tasks are ready to sleep, go to state 3
       if (sonarSleepReady.get() && tempSleepReady.get() && clockSleepReady.get() && sdSleepReady.get())
       {

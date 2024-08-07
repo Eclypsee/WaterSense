@@ -25,6 +25,7 @@ class GNSS
         // Public data
         GNSS(int sda, int scl, int clk);
         void begin();
+        void stopLogging();
         String getDisplayTime(void);
         SFE_UBLOX_GNSS getGNSS();
 };

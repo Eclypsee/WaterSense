@@ -17,7 +17,7 @@
 
 /**
  * @brief The SD storage task
- * @details Creates relevant files on the SD card and stores all data
+ * @details Creates relevant files on   the SD card and stores all data
  * 
  * @param params A pointer to task parameters
  */
@@ -26,6 +26,10 @@ void taskSD(void* params)
   SD_Data mySD(GPIO_NUM_5);
   File myFile;
   File GNSS;
+  int i = 0;
+  bool gnssDataReady = false;
+
+  uint8_t buffer[SIZE];
 
   // Task Setup
   uint8_t state = 0;
@@ -51,7 +55,7 @@ void taskSD(void* params)
       }
     }
 
-    // Check for data
+    // Check for data and populate buffer
     else if (state == 1)
     {
       // If data is available, untrip dataFlag go to state 2
@@ -68,10 +72,23 @@ void taskSD(void* params)
       }
 
       // If gnssDataFlag is tripped, go to state 5
-      if (gnssDataReady.get()) 
+      if (gnssDataReady) 
       {
-        gnssDataReady.put(false);
+        gnssDataReady = false;
         state = 5;
+      }
+
+      else if (gnssMeasureDone.get()) {
+        gnssMeasureDone.put(false);
+        state = 6;
+      }
+
+      while(!(writeBuffer.is_empty())) {
+        writeBuffer.get(buffer[i++]);
+        if(i == SIZE) {
+          i = 0;
+          gnssDataReady = true;
+        }
       }
     }
 
@@ -127,7 +144,22 @@ void taskSD(void* params)
     {
       // Close data file
       mySD.sleep(myFile);
+      mySD.sleep(GNSS);
       sdSleepReady.put(true);
+    }
+
+    // Store GNSS data
+    else if(state = 5)
+    {
+      mySD.writeGNSSData(GNSS, buffer);
+
+      state = 1;
+    }
+
+    //close GNSS file when measurement stops
+    else if(state = 6) {
+      mySD.sleep(GNSS);
+      state = 3;
     }
 
     sdCheck.put(true);

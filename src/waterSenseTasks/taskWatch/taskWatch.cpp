@@ -29,6 +29,7 @@ void taskWatch(void* params)
   bool voltage = false;
   bool sleep = false;
   bool measure = false;
+  bool gnss = false;
 
   uint32_t taskTimer = millis();
 
@@ -56,6 +57,10 @@ void taskWatch(void* params)
       voltage = voltageCheck.get();
       sleep = sleepCheck.get();
       measure = measureCheck.get();
+
+      #ifdef STANDALONE
+        measure = true;
+      #endif
 
       // If all tasks are good, reset the timer
       if (clock && sd && voltage && sleep && measure)

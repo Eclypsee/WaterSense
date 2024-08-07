@@ -25,9 +25,15 @@
 void taskClock2(void* params)
 {
   myGNSS.put(GNSS(SDA, SCL, CLK));
+  GNSS gnss = myGNSS.get();
+  gnss.begin();
+  gnssInit.put(true);
+
   ESP32Time myRTC(1);
 
-  lastKnownUnix = myGNSS.get().getGNSS().getUnixEpoch();
+  bool saved = false;
+
+  lastKnownUnix = gnss.getGNSS().getUnixEpoch();
 
   uint8_t state = 0;
 
@@ -55,11 +61,9 @@ void taskClock2(void* params)
     // Update
     else if (state == 1)
     {
-      // Update the GPS
-      myGPS.update(myClock);
 
       // If new data is available, go to state 2
-      if (myGPS.newData)
+      if (gnss.getGNSS().getFixType() > 2)
       {
         Serial.println("GPS Clock2 1 -> 2, dataFlag ready");
         state = 2;
@@ -76,32 +80,30 @@ void taskClock2(void* params)
     // Read from GPS
     else if (state == 2)
     {
-      myGPS.update(myClock);
-
-      latitude.put(myGPS.latitude);
-      longitude.put(myGPS.longitude);
-      altitude.put(myGPS.altitude);
-      fixType.put(myGPS.fixType);
+      latitude.put(gnss.getGNSS().getHighResLatitude());
+      longitude.put(gnss.getGNSS().getHighResLongitude());
+      altitude.put(gnss.getGNSS().getAltitudeMSL());
+      fixType.put(gnss.getGNSS().getGnssFixOk());
 
 
       // If we've switched to the internal clock, use it!
       if (internal)
       {
-        unixTime.put(myGPS.getUnixInternal(myRTC));
-        displayTime.put(myGPS.getDisplayInternal(myRTC));
+        unixTime.put(myRTC.getLocalEpoch());
+        displayTime.put(myRTC.getTimeDate());
       }
 
       // Otherwise, if the GPS has a fix, use it to set the time
-      else if (myGPS.fixType)
+      else if (gnss.getGNSS().getGnssFixOk())
       {
-        unixTime.put(myGPS.getUnixTime(myClock));
-        displayTime.put(myGPS.getDisplayTime(myClock));
+        unixTime.put(gnss.getGNSS().getUnixEpoch());
+        displayTime.put(gnss.getDisplayTime());
       }
 
       // Otherwise show zero
       else
       {
-        unixTime.put(String(0));
+        unixTime.put(0);
         displayTime.put("NaT");
       }
 
@@ -110,7 +112,7 @@ void taskClock2(void* params)
       state = 1;
 
       // Switch to the internal RTC if we have a good fix
-      if (myGPS.fixType)
+      if (!(gnss.getGNSS().getGnssFixOk()))
       {
         Serial.printf("Switching to internal RTC! Time: %s\n", displayTime.get());
         internal = true;
@@ -124,21 +126,23 @@ void taskClock2(void* params)
       uint16_t myAllign = MINUTE_ALLIGN.get();
       uint16_t myRead = READ_TIME.get();
 
-      // Calculate sleep time
-      if (myGPS.fixType)
-      {
-        sleepTime.put(myGPS.getSleepInternal(myRTC, myAllign, myRead));
-      }
+      #ifdef STANDALONE
+        myRead = GNSS_STANDALONE_SLEEP;
+      #endif
 
-      else
-      {
-        sleepTime.put(myGPS.getSleepTime(myClock, myAllign, myRead));
-      }
-      
+      // Calculate sleep time
+      sleepTime.put(myRead);
+
       Serial.println("GPS Clock2 3, GPS going to sleep");
 
-      // Disable GPS
-      myGPS.sleep(myClock);
+      #ifdef STANDALONE
+        // Disable GNSS
+        while (gnss.getGNSS().powerOff(sleepTime.get()) != true)
+        {
+
+        };
+      #endif
+      
       clockSleepReady.put(true);
     }
 
@@ -147,7 +151,7 @@ void taskClock2(void* params)
     {
       Serial.println("GPS Clock2 4 -> 1, GPS getting fix (blink)");
       // wakeCounter = 0;
-      wakeReady.put(myGPS.getFix(myClock, FIX_DELAY));
+      wakeReady.put(myGNSS.get().getGNSS().getGnssFixOk());
 
       state = 1;
     }
@@ -156,12 +160,7 @@ void taskClock2(void* params)
     else if (state == 5)
     {
       // Update internal clock
-      myGPS.updateInternal(myClock, myRTC);
-      unixRtcStart = myGPS.internalStart;
-      lastKnownUnix = myGPS.lastGpsUnix;
-
-      // Turn off GPS
-      myGPS.sleep(myClock);
+      lastKnownUnix = gnss.getGNSS().getUnixEpoch();
 
       state = 6;
     }
@@ -169,8 +168,8 @@ void taskClock2(void* params)
     // Read from RTC
     else if (state == 6)
     {
-      unixTime.put(myGPS.getUnixInternal(myRTC));
-      displayTime.put(myGPS.getDisplayInternal(myRTC));
+      unixTime.put(myRTC.getEpoch());
+      displayTime.put(myRTC.getDateTime());
       
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())

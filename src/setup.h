@@ -42,6 +42,14 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
+// 24-hour read
+#define GNSS_HI_READ 60*60*24
+// 12-hour read
+#define GNSS_MID_READ 60*60*12
+#define GNSS_STANDALONE_SLEEP 60*60*6
+
+#define GNSS_SLEEP 60*60*48
+
 #define WAKE_CYCLES 15 ///< Number of wake cycles between reset checks
 #define FIX_DELAY 60*2 ///< Seconds to wait for first GPS fix
 // #define FIX_DELAY 1 ///< Seconds to wait for first GPS fix
@@ -54,6 +62,7 @@
 #define SLEEP_PERIOD 100 ///< Sleep task period in ms
 #define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
 #define WATCHDOG_PERIOD 100 ///< Watchdog task period in ms
+#define GNSS_PERIOD 1000 ///< GNSS task period in ms
 
 // #define R1b 9.54 ///< Larger resistor for battery voltage divider
 // #define R2b 2.96 ///< Smaller resistor for battery voltage divider
@@ -63,7 +72,8 @@
 #define R1s 10.0 ///< Resistor for solar panel voltage divider
 #define R2s 10.0 ///< Resistor for solar panel voltage divider
 
-#define sdWriteSize 512 ///<Write data to the SD card in blocks of 512 bytes 
+#define sdWriteSize 512 ///<Write data to the SD card in blocks of 512 bytes
+#define fileBufferSize 16384 // Allocate 16KBytes of RAM for UBX message storage  
 
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||

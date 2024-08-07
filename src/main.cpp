@@ -43,6 +43,11 @@ Share<bool> clockSleepReady("Clock Sleep Ready"); ///< A shared variable to indi
 Share<bool> sonarSleepReady("Sonar Sleep Ready"); ///< A shared variable to indicate the sonar sensor is ready to sleep
 Share<bool> tempSleepReady("Temp Sleep Ready"); ///< A shared variable to indicate the temp sensor is ready to sleep
 Share<bool> sdSleepReady("SD Sleep Ready"); ///< A shared variable to indicate the SD card is ready to sleep
+extern Share<bool> gnssDataReady("GNSS Data Ready");
+extern Share<bool> gnssSleepReady("GNSS Sleep Ready");
+extern Share<bool> gnssPowerSave("GNSS Power Save");
+extern Share<bool> gnssInit("GNSS initialization");
+extern Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 
 // Shares from GPS Clock
 Share<float> latitude("Latitude"); ///< The current latitude [Decimal degrees]
@@ -91,14 +96,21 @@ void setup()
   wakeReady.put(false);
   READ_TIME.put(HI_READ);
   MINUTE_ALLIGN.put(HI_ALLIGN);
+  GNSS_READ_TIME.put(GNSS_MID_READ);
+  gnssPowerSave.put(false);
+  gnssInit.put(false);
+  gnssMeasureDone.put(false);
 
   // Setup tasks
-  xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 3, NULL);
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 7, NULL);
   xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
+  
+  #ifndef STANDALONE
+    xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 3, NULL);
+  #endif
 }
 
 void loop()

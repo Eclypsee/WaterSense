@@ -64,6 +64,15 @@ void GNSS :: begin() {
     wakeReady.put(gnss.getGnssFixOk());
 }
 
+void GNSS :: stopLogging() {
+  gnss.logRXMSFRBX(false);
+  gnss.logRXMRAWX(false);
+}
+
+void GNSS :: togglePowerSave(bool on) {
+
+}
+
 String GNSS :: getDisplayTime() {
   char buffer[30]; // Buffer to hold the formatted string
   snprintf(buffer, sizeof(buffer), "%02u %02u %04u   %02u:%02u:%02u:%03u",

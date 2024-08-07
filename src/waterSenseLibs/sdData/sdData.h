@@ -11,6 +11,9 @@
 #include <Arduino.h>
 #include "SD.h"
 #include <utility>
+#include "setup.h"
+
+#define SIZE sdWriteSize * 4
 
 class SD_Data
 {
@@ -37,6 +40,9 @@ class SD_Data
 
         /// A method to write data to the sd card
         void writeData(File &data_file, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage);
+
+        /// A method to write GNSS data to SD card
+        void writeGNSSData(File &dataFile, uint8_t buffer[SIZE]);
 
         void sleep(File &dataFile); ///< A method to close the current file and put the device to sleep
 };
