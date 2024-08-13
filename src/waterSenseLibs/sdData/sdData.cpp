@@ -141,7 +141,9 @@ File SD_Data :: createGNSSFile()
 
     Serial.println("Failed to create UBX data file! Freezing..."); 
 
-  } 
+  }
+  
+  return dataFile;
 
 } 
 

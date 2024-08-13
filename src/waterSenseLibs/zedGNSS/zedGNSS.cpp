@@ -69,8 +69,8 @@ void GNSS :: stopLogging() {
   gnss.logRXMRAWX(false);
 }
 
-void GNSS :: togglePowerSave(bool on) {
-
+void GNSS :: powerSaveSelect(bool on) {
+  gnss.powerSaveMode(on);
 }
 
 String GNSS :: getDisplayTime() {

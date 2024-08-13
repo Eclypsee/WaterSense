@@ -9,6 +9,9 @@
  * 
  */
 
+#ifndef SHARED_DATA_H
+#define SHARED_DATA_H
+
 #include "waterSenseLibs/shares/taskshare.h"
 #include "waterSenseLibs/shares/taskqueue.h"
 #include "setup.h"
@@ -29,7 +32,6 @@ extern Share<bool> sleepCheck;
 extern Share<bool> measureCheck;
 extern Share<bool> voltageCheck;
 extern Share<bool> sdCheck;
-extern Share<bool> gnssCheck;
 
 // Flags
 extern Share<bool> dataReady;
@@ -38,10 +40,7 @@ extern Share<bool> clockSleepReady;
 extern Share<bool> sonarSleepReady;
 extern Share<bool> tempSleepReady;
 extern Share<bool> sdSleepReady;
-extern Share<bool> gnssSleepReady;
-extern RTC_DATA_ATTR bool gnssPowerSave;
-extern Share<bool> gnssInit;
-extern Share<bool> gnssMeasureDone;
+extern Share<bool> gnssPowerSave;
 
 // Shares from GNSS
 extern Share<int32_t> latitude;
@@ -61,15 +60,15 @@ extern Share<float> humidity;
 //Shares from GNSS
 extern Share<int> numSFRBX;
 extern Share<int> numRAWX;
-extern Queue<uint8_t> writeBuffer(sdWriteSize * 4);
-extern Share<GNSS> myGNSS;
+extern Queue<uint8_t> writeBuffer;
 
 // Duty Cycle
 extern Share<float> solar;
 extern Share<float> battery;
 extern Share<uint16_t> READ_TIME;
 extern Share<uint16_t> MINUTE_ALLIGN;
-extern Share<uint16_t> GNSS_READ_TIME;
+
+#endif //SHARED_DATA_H
 
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||

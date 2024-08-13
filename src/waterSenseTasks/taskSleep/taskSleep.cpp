@@ -58,7 +58,7 @@ void taskSleep(void* params)
       #ifdef STANDALONE
         myReadTime = GNSS_READ_TIME.get();
       #endif
-      if (((millis() - runTimer) > myReadTime*1000) && gnssSleepReady.get())
+      if (((millis() - runTimer) > myReadTime*1000))
       {
         Serial.printf("Sleep state 1 -> 2 Time: %s\n", displayTime.get());
 

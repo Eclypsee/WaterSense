@@ -43,18 +43,15 @@ Share<bool> clockSleepReady("Clock Sleep Ready"); ///< A shared variable to indi
 Share<bool> sonarSleepReady("Sonar Sleep Ready"); ///< A shared variable to indicate the sonar sensor is ready to sleep
 Share<bool> tempSleepReady("Temp Sleep Ready"); ///< A shared variable to indicate the temp sensor is ready to sleep
 Share<bool> sdSleepReady("SD Sleep Ready"); ///< A shared variable to indicate the SD card is ready to sleep
-extern Share<bool> gnssDataReady("GNSS Data Ready");
-extern Share<bool> gnssSleepReady("GNSS Sleep Ready");
-extern Share<bool> gnssPowerSave("GNSS Power Save");
-extern Share<bool> gnssInit("GNSS initialization");
-extern Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
+Share<bool> gnssPowerSave("GNSS Power Save");
+Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 
 // Shares from GPS Clock
-Share<float> latitude("Latitude"); ///< The current latitude [Decimal degrees]
-Share<float> longitude("Longitude"); ///< The current longitude [Decimal degrees]
-Share<float> altitude("Altitude"); ///< The current altitude [meters above MSL]
+Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
+Share<int32_t> longitude("Longitude"); ///< The current longitude [Decimal degrees]
+Share<int32_t> altitude("Altitude"); ///< The current altitude [meters above MSL]
 Share<uint8_t> fixType("Fix Type"); ///< The current fix type
-Share<String> unixTime("Unix Time"); ///< The current Unix timestamp relative to GMT
+Share<uint32_t> unixTime("Unix Time"); ///< The current Unix timestamp relative to GMT
 Share<String> displayTime("Display Time"); ///< The current time of day relative to GMT
 Share<bool> wakeReady("Wake Ready"); ///< Indicates whether or not the device is ready to wake
 Share<uint64_t> sleepTime("Sleep Time"); ///< The number of microseconds to sleep
@@ -63,6 +60,11 @@ Share<uint64_t> sleepTime("Sleep Time"); ///< The number of microseconds to slee
 Share<int16_t> distance("Distance"); ///< The distance measured by the ultrasonic sensor in millimeters
 Share<float> temperature("Temperature"); ///< The temperature in Fahrenheit
 Share<float> humidity("Humidity"); ///< The relative humidity in %
+
+//Shares from GNSS
+Share<int> numSFRBX("Number of SFRBX msgs"); ///<SFRBX msgs received by GNSS module
+Share<int> numRAWX("Number of RAWX msgs"); ///<RAWX msgs received by GNSS module
+Queue<uint8_t> writeBuffer(sdWriteSize * 4); ///<Queue to write GNSS data for SD task
 
 // Duty Cycle
 Share<float> solar("Solar Voltage"); ///< The solar panel voltage
@@ -96,9 +98,7 @@ void setup()
   wakeReady.put(false);
   READ_TIME.put(HI_READ);
   MINUTE_ALLIGN.put(HI_ALLIGN);
-  GNSS_READ_TIME.put(GNSS_MID_READ);
   gnssPowerSave.put(false);
-  gnssInit.put(false);
   gnssMeasureDone.put(false);
 
   // Setup tasks

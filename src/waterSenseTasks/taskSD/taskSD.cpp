@@ -78,11 +78,6 @@ void taskSD(void* params)
         state = 5;
       }
 
-      else if (gnssMeasureDone.get()) {
-        gnssMeasureDone.put(false);
-        state = 6;
-      }
-
       while(!(writeBuffer.is_empty())) {
         writeBuffer.get(buffer[i++]);
         if(i == SIZE) {
@@ -154,12 +149,6 @@ void taskSD(void* params)
       mySD.writeGNSSData(GNSS, buffer);
 
       state = 1;
-    }
-
-    //close GNSS file when measurement stops
-    else if(state = 6) {
-      mySD.sleep(GNSS);
-      state = 3;
     }
 
     sdCheck.put(true);
