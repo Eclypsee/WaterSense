@@ -148,6 +148,9 @@ void taskSD(void* params)
     {
       mySD.writeGNSSData(GNSS, buffer);
 
+
+      Serial.println("GNSS data written to SD card");
+
       state = 1;
     }
 

@@ -233,6 +233,7 @@ void taskClock2(void* params)
                 writeBuffer.put(myBuffer[i]);
                 unixTime.put(gnss.getUnixEpoch());
               }
+              Serial.println("GNSS Buffer populated in queue");
               gnss.checkUblox(); // Check for the arrival of new data and process it. 
               gnss.checkCallbacks(); // Check if any callbacks are waiting to be processed.
               unixTime.put(gnss.getUnixEpoch()); 

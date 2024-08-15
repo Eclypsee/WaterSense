@@ -58,7 +58,9 @@ void taskVoltage(void* params)
         {
           READ_TIME.put(LOW_READ);
           MINUTE_ALLIGN.put(LOW_ALLIGN);
-          gnssPowerSave.put(true);
+          #ifndef STANDALONE
+            gnssPowerSave.put(true);
+          #endif
         }
 
         else if (batteryVoltage < 3.2)
