@@ -17,7 +17,7 @@
  * @details Writes data to the SD card at the specified read intervals but does not sleep
  * 
  */
-#define CONTINUOUS
+//#define CONTINUOUS
 
 /**
  * @brief Define this constant to enable standalone GNSS measurements (no sonar or temp)
