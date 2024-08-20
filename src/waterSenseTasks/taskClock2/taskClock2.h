@@ -11,6 +11,6 @@
 
 #define SCL 22 
 #define SDA 21 
-#define CLK 400000
+#define CLK 100000
 
 void taskClock2(void* params);

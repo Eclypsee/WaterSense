@@ -41,6 +41,7 @@ extern Share<bool> sonarSleepReady;
 extern Share<bool> tempSleepReady;
 extern Share<bool> sdSleepReady;
 extern Share<bool> gnssPowerSave;
+extern Share<bool> gnssDataReady;
 
 // Shares from GNSS
 extern Share<int32_t> latitude;
@@ -60,12 +61,12 @@ extern Share<float> humidity;
 //Shares from GNSS
 extern Share<int> numSFRBX;
 extern Share<int> numRAWX;
-extern Queue<uint8_t> writeBuffer;
+extern uint8_t *myBuffer;
 
 // Duty Cycle
 extern Share<float> solar;
 extern Share<float> battery;
-extern Share<uint16_t> READ_TIME;
+extern Share<uint32_t> READ_TIME;
 extern Share<uint16_t> MINUTE_ALLIGN;
 
 #endif //SHARED_DATA_H

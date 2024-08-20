@@ -21,11 +21,14 @@ class SD_Data
         // Protected data
         gpio_num_t CS;
         gpio_num_t LED = GPIO_NUM_2;
+        String GNSSFilePath = "";
 
     public:
         // Public data
 
         SD_Data(gpio_num_t pin); ///< A constructor for the SD_Data class
+
+        String getGNSSFilePath();
 
         void writeHeader(void); ///< A method to check and format header files
 

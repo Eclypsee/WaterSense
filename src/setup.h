@@ -17,14 +17,14 @@
  * @details Writes data to the SD card at the specified read intervals but does not sleep
  * 
  */
-//#define CONTINUOUS
+#define CONTINUOUS
 
 /**
  * @brief Define this constant to enable standalone GNSS measurements (no sonar or temp)
  * @details Writes data to the SD card with minimal sleep time
  * 
  */
-//#define STANDALONE
+#define STANDALONE
 
 /**
  * @brief Define this constant to enable variable duty cycle
@@ -42,9 +42,9 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_STANDALONE_SLEEP 60*60*6
+#define GNSS_READ_TIME 60*29
 
-#define GNSS_SLEEP 60*60*48
+#define GNSS_STANDALONE_SLEEP 60
 
 #define WAKE_CYCLES 15 ///< Number of wake cycles between reset checks
 #define FIX_DELAY 60*2 ///< Seconds to wait for first GPS fix
@@ -53,8 +53,8 @@
 #define WATCH_TIMER 15*1000 ///< ms of hang time before triggering a reset
 
 #define MEASUREMENT_PERIOD 100 ///< Measurement task period in ms
-#define SD_PERIOD 10 ///< SD task period in ms
-#define CLOCK_PERIOD 50 ///< Clock task period in ms
+#define SD_PERIOD 100 ///< SD task period in ms
+#define CLOCK_PERIOD 100 ///< Clock task period in ms
 #define SLEEP_PERIOD 100 ///< Sleep task period in ms
 #define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
 #define WATCHDOG_PERIOD 100 ///< Watchdog task period in ms

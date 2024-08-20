@@ -49,6 +49,11 @@ SD_Data :: SD_Data(gpio_num_t pin)
         }
     }
     digitalWrite(LED, LOW);
+    GNSSFilePath = "";
+}
+
+String SD_Data :: getGNSSFilePath() {
+    return GNSSFilePath;
 }
 
 /**
@@ -69,7 +74,8 @@ void SD_Data :: writeHeader()
             "Cal Poly Tide Sensor\n"
             "https://github.com/adunn-kal/workSoftware/tree/master/waterSense\n\n"
             "Data File format:\n"
-            "UNIX Time (GMT), Distance (mm), External Temp (F), Humidity (%), Battery Voltage (V), Solar Panel Voltage (V)\n");
+            "UNIX Time (GMT), Distance (mm), External Temp (F), Humidity (%), Battery Voltage (V), Solar Panel Voltage (V)\n"
+            "Current Battery Voltage: %f V\n", battery.get());
         read_me.close();
 
         SD.mkdir("/Data");
@@ -132,8 +138,10 @@ File SD_Data :: createGNSSFile()
   fileName += String(millis(), HEX); 
 
   fileName += ".ubx"; 
+  
+  this->GNSSFilePath = fileName;
 
-  File dataFile = SD.open(fileName, FILE_WRITE); 
+  File dataFile = SD.open(fileName, FILE_WRITE, true); 
 
   if (!dataFile) 
 

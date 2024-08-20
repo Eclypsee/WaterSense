@@ -20,13 +20,14 @@ class GNSS
 {
     protected:
         // Protected data
-        SFE_UBLOX_GNSS gnss;
         int sda, scl, clk;
 
     public:
         // Public data
+        SFE_UBLOX_GNSS gnss;
         GNSS(int sda, int scl, int clk);
-        void begin();
+        void start();
+        void getGNSSData();
         void stopLogging();
         String getDisplayTime();
         SFE_UBLOX_GNSS getGNSS();
@@ -35,5 +36,6 @@ class GNSS
 
 void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct);
 void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct);
+void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct);
 
 #endif //ZED_GNSS_H

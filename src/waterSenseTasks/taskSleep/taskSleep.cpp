@@ -54,9 +54,9 @@ void taskSleep(void* params)
     else if (state == 1)
     {
       // If runTimer, go to state 2
-      uint16_t myReadTime = READ_TIME.get();
+      uint32_t myReadTime = READ_TIME.get();
       #ifdef STANDALONE
-        myReadTime = GNSS_READ_TIME.get();
+        myReadTime =  GNSS_READ_TIME;
       #endif
       if (((millis() - runTimer) > myReadTime*1000))
       {

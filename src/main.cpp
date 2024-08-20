@@ -45,6 +45,7 @@ Share<bool> tempSleepReady("Temp Sleep Ready"); ///< A shared variable to indica
 Share<bool> sdSleepReady("SD Sleep Ready"); ///< A shared variable to indicate the SD card is ready to sleep
 Share<bool> gnssPowerSave("GNSS Power Save");
 Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
+Share<bool> gnssDataReady("GNSS buffer ready");
 
 // Shares from GPS Clock
 Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
@@ -65,17 +66,17 @@ Share<float> humidity("Humidity"); ///< The relative humidity in %
 Share<int> numSFRBX("Number of SFRBX msgs"); ///<SFRBX msgs received by GNSS module
 Share<int> numRAWX("Number of RAWX msgs"); ///<RAWX msgs received by GNSS module
 Queue<uint8_t> writeBuffer(sdWriteSize * 4); ///<Queue to write GNSS data for SD task
+uint8_t *myBuffer = new uint8_t[sdWriteSize * 4]; /// <Buffer to copy to SD card
 
 // Duty Cycle
 Share<float> solar("Solar Voltage"); ///< The solar panel voltage
 Share<float> battery("Battery Voltage"); ///< The input voltage to the MCU
-Share<uint16_t> READ_TIME("Read Time"); ///< The current read time in seconds
+Share<uint32_t> READ_TIME("Read Time"); ///< The current read time in seconds
 Share<uint16_t> MINUTE_ALLIGN("Minute Allign"); ///< The current minute allignment
 
+
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||
-
-
 
 
 
@@ -89,6 +90,7 @@ Share<uint16_t> MINUTE_ALLIGN("Minute Allign"); ///< The current minute allignme
 
 void setup()
 {
+  
   // Setup
   // setCpuFrequencyMhz(80);
   Serial.begin(115200);
@@ -100,6 +102,7 @@ void setup()
   MINUTE_ALLIGN.put(HI_ALLIGN);
   gnssPowerSave.put(false);
   gnssMeasureDone.put(false);
+  gnssDataReady.put(false);
 
   // Setup tasks
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 7, NULL);

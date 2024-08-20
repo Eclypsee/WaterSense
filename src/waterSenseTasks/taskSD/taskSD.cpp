@@ -27,9 +27,6 @@ void taskSD(void* params)
   File myFile;
   File GNSS;
   int i = 0;
-  bool gnssDataReady = false;
-
-  uint8_t buffer[SIZE];
 
   // Task Setup
   uint8_t state = 0;
@@ -48,7 +45,9 @@ void taskSD(void* params)
           mySD.writeHeader();
         }
 
-        myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
+        #ifndef STANDALONE
+          myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
+        #endif
         GNSS = mySD.createGNSSFile();
 
         state = 1;
@@ -58,12 +57,14 @@ void taskSD(void* params)
     // Check for data and populate buffer
     else if (state == 1)
     {
+      #ifndef STANDALONE
       // If data is available, untrip dataFlag go to state 2
       if (dataReady.get())
       {
         dataReady.put(false);
         state = 2;
       }
+      #endif
 
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
@@ -72,19 +73,19 @@ void taskSD(void* params)
       }
 
       // If gnssDataFlag is tripped, go to state 5
-      if (gnssDataReady) 
+      if (gnssDataReady.get()) 
       {
-        gnssDataReady = false;
+        gnssDataReady.put(false);
         state = 5;
       }
 
-      while(!(writeBuffer.is_empty())) {
-        writeBuffer.get(buffer[i++]);
-        if(i == SIZE) {
-          i = 0;
-          gnssDataReady = true;
-        }
-      }
+      // while(!(writeBuffer.is_empty())) {
+      //   buffer[i++] = writeBuffer.get();
+      //   if(i == SIZE) {
+      //     i = 0;
+      //     gnssDataReady = true;
+      //   }
+      // }
     }
 
     // Store data
@@ -124,9 +125,9 @@ void taskSD(void* params)
       {
         Serial.printf("Writing log file Time: %s\n", displayTime.get());
         uint32_t tim = unixTime.get();
-        float lat = latitude.get();
-        float lon = longitude.get();
-        float alt = altitude.get();
+        int32_t lat = latitude.get();
+        int32_t lon = longitude.get();
+        int32_t alt = altitude.get();
 
         mySD.writeLog(tim, wakeCounter, lat, lon, alt);
       }
@@ -146,7 +147,10 @@ void taskSD(void* params)
     // Store GNSS data
     else if(state = 5)
     {
-      mySD.writeGNSSData(GNSS, buffer);
+      String path = mySD.getGNSSFilePath();
+      GNSS = SD.open(path, FILE_APPEND, false);
+      mySD.writeGNSSData(GNSS, myBuffer);
+      mySD.sleep(GNSS);
 
 
       Serial.println("GNSS data written to SD card");
