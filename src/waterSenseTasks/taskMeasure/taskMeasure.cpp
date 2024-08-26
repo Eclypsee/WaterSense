@@ -90,6 +90,7 @@ void taskMeasure(void* params)
       // Disable temp/humidity
       myTemp.sleep();
       tempSleepReady.put(true);
+
     }
 
     measureCheck.put(true);

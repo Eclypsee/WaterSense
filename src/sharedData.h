@@ -24,6 +24,12 @@
 extern RTC_DATA_ATTR uint32_t wakeCounter; ///< A counter representing the number of wake cycles
 extern RTC_DATA_ATTR uint32_t lastKnownUnix;
 extern RTC_DATA_ATTR uint32_t unixRtcStart;
+/** 
+ * @typedef (GNSS*)
+ * @warning void pointer + de-ref'd object is NOT THREAD SAFE (Only use in 1 FreeRTOS task)
+ * @brief Non-Volatile GNSS pointer - Should only ever de-ref'd when casted to typedef (GNSS *) in sharedData.h
+ */
+extern RTC_DATA_ATTR void* globalGNSS;
 extern RTC_DATA_ATTR bool internal;
 
 // Watchdog Checks
@@ -47,7 +53,7 @@ extern Share<bool> gnssDataReady;
 extern Share<int32_t> latitude;
 extern Share<int32_t> longitude;
 extern Share<int32_t> altitude;
-extern Share<uint8_t> fixType;
+extern Share<bool> fixType;
 extern Share<uint32_t> unixTime;
 extern Share<String> displayTime;
 extern Share<bool> wakeReady;

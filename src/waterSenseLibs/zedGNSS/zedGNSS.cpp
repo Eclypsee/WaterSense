@@ -17,20 +17,16 @@ GNSS :: GNSS(int sda, int scl, int clk) {
 }
 
 void GNSS :: start() {
-    Wire.begin(this->sda, this->scl);
-    Wire.setClock(this->clk);
-
-
-    gnss.disableUBX7Fcheck(); 
     //gnss.enableDebugging();
-    gnss.setFileBufferSize(fileBufferSize * 2); 
-    if (gnss.begin() == false) // Connect to the u-blox module using Wire port 
+    gnss.setFileBufferSize(fileBufferSize);
+    //Serial.printf("File Buffer Size: %zu", gnss.fileBufferAvailable());
+    while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
     { 
-        Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
-        while (1); 
-    } 
+      Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
+    }
+
     gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
-    gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR 
+    gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
     gnss.setNavigationFrequency(1); // Produce one navigation solution per second (that's plenty for Precise Point Positioning) 
     Serial.println("Nav freq set");
     gnss.setAutoRXMSFRBXcallbackPtr(&newSFRBX); // Enable automatic RXM SFRBX messages with callback to newSFRBX 
@@ -41,26 +37,26 @@ void GNSS :: start() {
     gnss.setHighPrecisionMode();
     Serial.println("high precision mode");
     gnss.getTimeDOP();
-    Serial.println("Time DOP");
     gnss.saveConfiguration();
+    Serial.println("Time DOP");
     
 
     unixTime.put(gnss.getUnixEpoch());
-    displayTime.put(this->getDisplayTime());
+    setDisplayTime();
     altitude.put(gnss.getAltitude());
     latitude.put(gnss.getLatitude());
     longitude.put(gnss.getLongitude());
-    fixType.put(gnss.getFixType());
-    wakeReady.put(gnss.getGnssFixOk());
+    fixType.put(gnss.getGnssFixOk());
     Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
 }
 
 void GNSS :: getGNSSData() {
+        unixTime.put(gnss.getUnixEpoch());
         if(gnss.checkUblox() == false) {
           return;
         }
-        if(gnss.fileBufferAvailable() >= (sdWriteSize * 4)) {
-              gnss.extractFileBufferData(myBuffer, sdWriteSize * 4); // Extract exactly sdWriteSize bytes from the UBX file buffer and put them into myBuffer
+        if(gnss.fileBufferAvailable() >= (sdWriteSize)) {
+              gnss.extractFileBufferData(myBuffer, sdWriteSize); // Extract exactly sdWriteSize bytes from the UBX file buffer and put them into myBuffer
               gnssDataReady.put(true);
               // for(int i = 0; i < sdWriteSize; i++) {
               //   writeBuffer.put(myBuffer[i]);
@@ -68,34 +64,17 @@ void GNSS :: getGNSSData() {
               // }
               Serial.println("GNSS Buffer populated in queue");
               gnss.checkUblox(); // Check for the arrival of new data and process it. 
-              unixTime.put(gnss.getUnixEpoch()); 
               return;
         }
         return;
 }
 
-void GNSS :: stopLogging() {
-  gnss.logRXMSFRBX(false);
-  gnss.logRXMRAWX(false);
-}
 
-void GNSS :: powerSaveSelect(bool on) {
-  gnss.powerSaveMode(on);
-}
 
-String GNSS :: getDisplayTime() {
-  char *buffer;
-  buffer = new char[30]; // Buffer to hold the formatted string
-  snprintf(buffer, sizeof(buffer), "%02zu %02zu %04zu   %02zu:%02zu:%02zu:%03zu",
-             gnss.getMonth(), gnss.getDay(), gnss.getYear(),
-             gnss.getHour(), gnss.getMinute(), gnss.getSecond(), gnss.getMillisecond());
-  return buffer;
+void GNSS :: setDisplayTime() {
+  String s = String(unixTime.get());
+  displayTime.put(s);
 }
-
-SFE_UBLOX_GNSS GNSS :: getGNSS() {
-  return gnss;
-}
-
 
 void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct) 
 { 

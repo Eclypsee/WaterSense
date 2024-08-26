@@ -57,9 +57,16 @@ void taskSD(void* params)
     // Check for data and populate buffer
     else if (state == 1)
     {
+      // If gnssDataFlag is tripped, go to state 5
+      if (gnssDataReady.get()) 
+      {
+        gnssDataReady.put(false);
+        state = 5;
+      }
+
       #ifndef STANDALONE
       // If data is available, untrip dataFlag go to state 2
-      if (dataReady.get())
+      if (dataReady.get() && !gnssDataReady.get())
       {
         dataReady.put(false);
         state = 2;
@@ -67,16 +74,9 @@ void taskSD(void* params)
       #endif
 
       // If sleepFlag is tripped, go to state 3
-      if (sleepFlag.get())
+      if (sleepFlag.get() && !gnssDataReady.get())
       {
         state = 3;
-      }
-
-      // If gnssDataFlag is tripped, go to state 5
-      if (gnssDataReady.get()) 
-      {
-        gnssDataReady.put(false);
-        state = 5;
       }
 
       // while(!(writeBuffer.is_empty())) {
@@ -107,11 +107,14 @@ void taskSD(void* params)
       u_int32_t myTime = unixTime.get();
 
       // Write data to SD card
+      //String path = mySD.getDataFilePath();
+      //myFile = SD.open(path, FILE_APPEND, false);
       mySD.writeData(myFile, myDist, myTime, myTemp, myHum, batteryVoltage, solarVoltage);
+      //mySD.sleep(myFile);
       // myFile.printf("%s, %d, %f, %f, %d\n", unixTime.get(), myDist, myTemp, myHum, myFix);
 
       // Print data to serial monitor
-      // Serial.printf("%s, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", displayTime.get(), myDist, myTemp, myHum, batteryVoltage, solarVoltage);
+      //Serial.printf("%s, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", displayTime.get(), myDist, myTemp, myHum, batteryVoltage, solarVoltage);
       // Serial.println(myTime);
 
       state = 1;

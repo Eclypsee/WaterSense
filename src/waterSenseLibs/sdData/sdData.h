@@ -13,7 +13,7 @@
 #include <utility>
 #include "setup.h"
 
-#define SIZE sdWriteSize * 4
+#define SIZE sdWriteSize
 
 class SD_Data
 {
@@ -22,6 +22,7 @@ class SD_Data
         gpio_num_t CS;
         gpio_num_t LED = GPIO_NUM_2;
         String GNSSFilePath = "";
+        String DataFilePath = "";
 
     public:
         // Public data
@@ -29,6 +30,8 @@ class SD_Data
         SD_Data(gpio_num_t pin); ///< A constructor for the SD_Data class
 
         String getGNSSFilePath();
+        
+        String getDataFilePath();
 
         void writeHeader(void); ///< A method to check and format header files
 

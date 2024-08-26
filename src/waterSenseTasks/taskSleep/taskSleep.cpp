@@ -90,7 +90,7 @@ void taskSleep(void* params)
       uint64_t mySleep = sleepTime.get();
       uint64_t myAllign = MINUTE_ALLIGN.get();
       // mySleep /= 1000000;
-
+      
       // Go to sleep    
       gpio_deep_sleep_hold_en();
 
@@ -115,6 +115,19 @@ void taskSleep(void* params)
         }
       #endif
       
+      vTaskDelay(100);
+
+      Wire.end();
+      pinMode(SDA, INPUT);
+      pinMode(SCL, INPUT);
+      digitalWrite(SDA, LOW);
+      digitalWrite(SCL, LOW);
+
+      delete[] myBuffer;
+      //delete (GNSS*) globalGNSS;
+
+      vTaskDelay(100);
+
       esp_deep_sleep_start();
 
       state = 0;

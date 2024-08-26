@@ -49,11 +49,14 @@ SD_Data :: SD_Data(gpio_num_t pin)
         }
     }
     digitalWrite(LED, LOW);
-    GNSSFilePath = "";
 }
 
 String SD_Data :: getGNSSFilePath() {
     return GNSSFilePath;
+}
+
+String SD_Data :: getDataFilePath() {
+    return DataFilePath;
 }
 
 /**
@@ -114,6 +117,7 @@ File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
     }
 
     File file = SD.open(fileName, FILE_WRITE, true);
+    this->DataFilePath = fileName;
     assert(file);
     return file;
 }

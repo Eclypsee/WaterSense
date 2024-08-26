@@ -14,7 +14,7 @@
 #include "sharedData.h"
 #include "waterSenseTasks/taskMeasure/taskMeasure.h"
 #include "waterSenseTasks/taskSD/taskSD.h"
-#include "waterSenseTasks/taskClock2/taskClock2.h"
+#include "waterSenseTasks/taskClockGNSS/taskClockGNSS.h"
 #include "waterSenseTasks/taskSleep/taskSleep.h"
 #include "waterSenseTasks/taskVoltage/taskVoltage.h"
 #include "waterSenseTasks/taskWatch/taskWatch.h"
@@ -28,6 +28,7 @@ RTC_DATA_ATTR uint32_t wakeCounter = 0; ///< A counter representing the number o
 RTC_DATA_ATTR uint32_t lastKnownUnix = 0;
 RTC_DATA_ATTR uint32_t unixRtcStart = 0;
 RTC_DATA_ATTR bool internal = false;
+RTC_DATA_ATTR void* globalGNSS;
 
 // Watchdog Checks
 Share<bool> clockCheck("Clock Working");
@@ -51,7 +52,7 @@ Share<bool> gnssDataReady("GNSS buffer ready");
 Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
 Share<int32_t> longitude("Longitude"); ///< The current longitude [Decimal degrees]
 Share<int32_t> altitude("Altitude"); ///< The current altitude [meters above MSL]
-Share<uint8_t> fixType("Fix Type"); ///< The current fix type
+Share<bool> fixType("Fix Type"); ///< The current fix type
 Share<uint32_t> unixTime("Unix Time"); ///< The current Unix timestamp relative to GMT
 Share<String> displayTime("Display Time"); ///< The current time of day relative to GMT
 Share<bool> wakeReady("Wake Ready"); ///< Indicates whether or not the device is ready to wake
@@ -65,8 +66,7 @@ Share<float> humidity("Humidity"); ///< The relative humidity in %
 //Shares from GNSS
 Share<int> numSFRBX("Number of SFRBX msgs"); ///<SFRBX msgs received by GNSS module
 Share<int> numRAWX("Number of RAWX msgs"); ///<RAWX msgs received by GNSS module
-Queue<uint8_t> writeBuffer(sdWriteSize * 4); ///<Queue to write GNSS data for SD task
-uint8_t *myBuffer = new uint8_t[sdWriteSize * 4]; /// <Buffer to copy to SD card
+uint8_t *myBuffer = new uint8_t[sdWriteSize]; /// <Buffer to copy to SD card
 
 // Duty Cycle
 Share<float> solar("Solar Voltage"); ///< The solar panel voltage
@@ -94,25 +94,33 @@ void setup()
   // Setup
   // setCpuFrequencyMhz(80);
   Serial.begin(115200);
+
   while (!Serial) {}
   Serial.println("\n\n\n\n");
 
   wakeReady.put(false);
-  READ_TIME.put(HI_READ);
-  MINUTE_ALLIGN.put(HI_ALLIGN);
+  READ_TIME.put((uint32_t) HI_READ);
+  MINUTE_ALLIGN.put((uint16_t) HI_ALLIGN);
   gnssPowerSave.put(false);
   gnssMeasureDone.put(false);
   gnssDataReady.put(false);
+  clockSleepReady.put(false);
+  sdSleepReady.put(false);
+  tempSleepReady.put(false);
+  sonarSleepReady.put(false);
+  Wire.setPins(SDA, SCL);
+  Wire.begin();
+  Wire.setClock((uint32_t) CLK);
 
   // Setup tasks
-  xTaskCreate(taskSD, "SD Task", 8192, NULL, 7, NULL);
-  xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
+  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   
   #ifndef STANDALONE
-    xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 3, NULL);
+    xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
   #endif
 }
 

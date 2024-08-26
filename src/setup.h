@@ -33,7 +33,7 @@
  */
 //#define VARIABLE_DUTY ///< Define this constant to enable variable duty cycle
 //----------------------||
-#define HI_READ 60*5  //||
+#define HI_READ 15  //||
 #define MID_READ 60*2 //||
 #define LOW_READ 60*1 //||
 //                    //||
@@ -42,9 +42,9 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_READ_TIME 60*29
+#define GNSS_READ_TIME 29 * 60
 
-#define GNSS_STANDALONE_SLEEP 60
+#define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
 
 #define WAKE_CYCLES 15 ///< Number of wake cycles between reset checks
 #define FIX_DELAY 60*2 ///< Seconds to wait for first GPS fix
@@ -53,7 +53,7 @@
 #define WATCH_TIMER 15*1000 ///< ms of hang time before triggering a reset
 
 #define MEASUREMENT_PERIOD 100 ///< Measurement task period in ms
-#define SD_PERIOD 100 ///< SD task period in ms
+#define SD_PERIOD 10 ///< SD task period in ms
 #define CLOCK_PERIOD 100 ///< Clock task period in ms
 #define SLEEP_PERIOD 100 ///< Sleep task period in ms
 #define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
@@ -67,7 +67,7 @@
 #define R1s 10.0 ///< Resistor for solar panel voltage divider
 #define R2s 10.0 ///< Resistor for solar panel voltage divider
 
-#define sdWriteSize 512 ///<cWrite data to the SD card in blocks of 512 bytes
+#define sdWriteSize 8192 ///<cWrite data to the SD card in blocks of 512 bytes
 
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||

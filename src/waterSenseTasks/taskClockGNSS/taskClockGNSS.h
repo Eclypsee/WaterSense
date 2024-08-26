@@ -13,4 +13,4 @@
 #define SDA 21 
 #define CLK 100000
 
-void taskClock2(void* params);
+void taskClockGNSS(void* params);

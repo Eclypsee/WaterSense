@@ -11,10 +11,10 @@
 #include <Wire.h> 
 #include <SD.h>
 #include <iostream> 
-#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
+#include <SparkFun_u-blox_GNSS_v3.h>
 #include "sharedData.h"
 
-#define fileBufferSize 16384 ///< Allocate 16KBytes of RAM for UBX message storage  
+#define fileBufferSize 20000 ///< Allocate 20KBytes of RAM (max buffer size 22.3kB) for UBX message storage  
 
 class GNSS
 {
@@ -28,14 +28,10 @@ class GNSS
         GNSS(int sda, int scl, int clk);
         void start();
         void getGNSSData();
-        void stopLogging();
-        String getDisplayTime();
-        SFE_UBLOX_GNSS getGNSS();
-        void powerSaveSelect(bool on);
+        void setDisplayTime();
 };
 
 void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct);
 void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct);
-void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct);
 
 #endif //ZED_GNSS_H

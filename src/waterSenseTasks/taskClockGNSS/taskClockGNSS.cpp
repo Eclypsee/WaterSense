@@ -10,7 +10,7 @@
  */
 
 #include <Arduino.h>
-#include "taskClock2.h"
+#include "taskClockGNSS.h"
 #include "setup.h"
 #include "sharedData.h"
 #include "waterSenseLibs/gpsClock/gpsClock.h"
@@ -22,19 +22,14 @@
  * 
  * @param params A pointer to task parameters
  */
-void taskClock2(void* params)
+void taskClockGNSS(void* params)
 {
   uint64_t runTimer;
   uint16_t myReadTime;
 
-  GNSS* globalGNSS = new GNSS(SDA, SCL, CLK);
-  GNSS myGNSS = *globalGNSS;
-  myGNSS.start();
+  GNSS myGNSS = GNSS(SDA, SCL, CLK);
 
   ESP32Time myRTC(1);
-
-  lastKnownUnix = myGNSS.gnss.getUnixEpoch();
-  Serial.printf("%zu\n", lastKnownUnix);
 
   uint8_t state = 0;
 
@@ -44,7 +39,7 @@ void taskClock2(void* params)
     if (state == 0)
     {
       Serial.println("GPS Clock2 Wakeup, begin enabling GNSS");
-      if (!(wakeReady.get()))
+      if (wakeCounter == 0)
       {
         Serial.println("GPS Clock2 0 -> 4 Wakeup, getting fix");
         state = 4;
@@ -53,7 +48,10 @@ void taskClock2(void* params)
       else
       {
         Serial.println("GPS Clock2 0 -> 1, Update GPS");
-        wakeReady.put(true);
+        //if(wakeReady.get() != true) {
+          myGNSS.start();
+          wakeReady.put(true);
+        //}
         state = 1;
       }
     }
@@ -61,21 +59,21 @@ void taskClock2(void* params)
     // Update
     else if (state == 1)
     {
-      while(myGNSS.gnss.getGnssFixOk() != true) {
-        unixTime.put(myGNSS.gnss.getUnixEpoch());
+      while(fixType.get() != true) {
+          fixType.put(myGNSS.gnss.getGnssFixOk());
+          vTaskPrioritySet(NULL, 7);
+          Serial.println("Cold Starting...");
+          unixTime.put(myGNSS.gnss.getUnixEpoch());
       }
-      
-      fixType.put(true);
-      
 
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
       {
         Serial.println("GPS Clock2 1 -> 3, sleepFlag ready");
-        fixType.put(myGNSS.gnss.getGnssFixOk());
+        gnssDataReady.put(true);
         latitude.put(myGNSS.gnss.getHighResLatitude());
         longitude.put(myGNSS.gnss.getHighResLongitude());
-        altitude.put(myGNSS.gnss.getAltitudeMSL());
+        altitude.put(myGNSS.gnss.getAltitudeMSL() / (int32_t) 1000);
         state = 3;
       }
 
@@ -88,8 +86,8 @@ void taskClock2(void* params)
       }
       #endif
 
-      if(!(gnssPowerSave.get()) && !(gnssDataReady.get())) {
-        delay(100);
+      else if(!(gnssPowerSave.get()) && !(gnssDataReady.get())) {
+        vTaskPrioritySet(NULL, 4);
         wakeReady.put(true);
         state = 7;
       }
@@ -107,10 +105,10 @@ void taskClock2(void* params)
       }
 
       // Otherwise, if the GPS has a fix, use it to set the time
-      else if (myGNSS.getGNSS().getFixType())
+      else if (fixType.get())
       {
         unixTime.put(myGNSS.gnss.getUnixEpoch());
-        displayTime.put(myGNSS.getDisplayTime());
+        myGNSS.setDisplayTime();
       }
 
       // Otherwise show zero
@@ -125,7 +123,7 @@ void taskClock2(void* params)
       state = 1;
 
       // Switch to the internal RTC if we have a good fix
-      if (!(myGNSS.getGNSS().getGnssFixOk()))
+      if (!(fixType.get()))
       {
         Serial.printf("Switching to internal RTC! Time: %s\n", displayTime.get());
         internal = true;
@@ -136,7 +134,6 @@ void taskClock2(void* params)
     // Sleep
     else if (state == 3)
     {
-      myGNSS.stopLogging();
       uint16_t maxBufferBytes = myGNSS.gnss.getMaxFileBufferAvail(); // Get how full the file buffer has been (not how full it is now) 
       if (maxBufferBytes > ((fileBufferSize / 5) * 4)) // Warn the user if fileBufferSize was more than 80% full
          { 
@@ -167,21 +164,31 @@ void taskClock2(void* params)
       uint16_t myAllign = MINUTE_ALLIGN.get();
       uint16_t myRead = READ_TIME.get();
 
+      myGNSS.setDisplayTime();
+      // Calculate sleep time
+      sleepTime.put((uint64_t) (myRead * 1000000));
+
       #ifdef STANDALONE
-        myRead = GNSS_STANDALONE_SLEEP;
+        sleepTime.put((uint64_t) GNSS_STANDALONE_SLEEP);
       #endif
 
-      displayTime.put(myGNSS.getDisplayTime());
-      // Calculate sleep time
-      sleepTime.put(myRead);
+      
 
       Serial.println("GPS Clock2 3, GPS going to sleep");
 
-      // Disable GNSS
-      while (myGNSS.gnss.powerOff(sleepTime.get()) != true)
-      {
+
+      myGNSS.gnss.softwareResetGNSSOnly();
+      myGNSS.gnss.end();
+      vTaskDelay(500);
+
+      #ifndef CONTINUOUS
+      // Disable GNSS and sleep for only 90% of the time
+      while(myGNSS.gnss.powerOff(uint32_t (sleepTime.get() * 0.9 / 1000)) != true) {
 
       };
+      #endif
+
+      vTaskDelay(1000);
 
       clockSleepReady.put(true);
     }
@@ -190,11 +197,8 @@ void taskClock2(void* params)
     else if (state == 4)
     {
       myGNSS.start();
-
-
       wakeReady.put(true);
-
-      //Serial.printf("GPS Clock2 4 -> 1, GPS getting fix (blink) %hhu\n", myGNSS.getGNSS().getFixType());
+      Serial.printf("GPS Clock2 4 -> 1, GPS getting fix (blink) %u\n", myGNSS.gnss.getFixType());
 
       state = 1;
     }
@@ -203,7 +207,7 @@ void taskClock2(void* params)
     else if (state == 5)
     {
       // Update internal clock
-      lastKnownUnix = myGNSS.getGNSS().getUnixEpoch();
+      lastKnownUnix = myGNSS.gnss.getUnixEpoch();
 
       state = 6;
     }
