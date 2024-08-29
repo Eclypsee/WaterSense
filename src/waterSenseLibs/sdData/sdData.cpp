@@ -139,7 +139,7 @@ File SD_Data :: createGNSSFile()
 
   fileName += "_"; 
 
-  fileName += String(millis(), HEX); 
+  fileName += String(unixTime.get()); 
 
   fileName += ".ubx"; 
   

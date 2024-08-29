@@ -50,7 +50,6 @@ void taskClockGNSS(void* params)
         Serial.println("GPS Clock2 0 -> 1, Update GPS");
         //if(wakeReady.get() != true) {
           myGNSS.start();
-          wakeReady.put(true);
         //}
         state = 1;
       }
@@ -59,12 +58,13 @@ void taskClockGNSS(void* params)
     // Update
     else if (state == 1)
     {
+      vTaskPrioritySet(NULL, 7);
       while(fixType.get() != true) {
           fixType.put(myGNSS.gnss.getGnssFixOk());
-          vTaskPrioritySet(NULL, 7);
           Serial.println("Cold Starting...");
-          unixTime.put(myGNSS.gnss.getUnixEpoch());
       }
+      wakeReady.put(true);
+      unixTime.put(myGNSS.gnss.getUnixEpoch());
 
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
@@ -88,7 +88,6 @@ void taskClockGNSS(void* params)
 
       else if(!(gnssPowerSave.get()) && !(gnssDataReady.get())) {
         vTaskPrioritySet(NULL, 4);
-        wakeReady.put(true);
         state = 7;
       }
 
@@ -176,8 +175,9 @@ void taskClockGNSS(void* params)
 
       Serial.println("GPS Clock2 3, GPS going to sleep");
 
-
-      myGNSS.gnss.softwareResetGNSSOnly();
+      #ifndef CONTINOUS
+        myGNSS.gnss.softwareResetGNSSOnly();
+      #endif 
       myGNSS.gnss.end();
       vTaskDelay(500);
 
@@ -197,7 +197,6 @@ void taskClockGNSS(void* params)
     else if (state == 4)
     {
       myGNSS.start();
-      wakeReady.put(true);
       Serial.printf("GPS Clock2 4 -> 1, GPS getting fix (blink) %u\n", myGNSS.gnss.getFixType());
 
       state = 1;

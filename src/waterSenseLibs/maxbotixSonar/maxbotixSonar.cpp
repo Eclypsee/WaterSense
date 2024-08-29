@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include "maxbotixSonar.h"
+#include "setup.h"
 
 /**
  * @brief A constructor for the Maxbotix Sonar class

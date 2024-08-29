@@ -45,10 +45,14 @@ void taskSD(void* params)
           mySD.writeHeader();
         }
 
+
+
         #ifndef STANDALONE
           myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
         #endif
         GNSS = mySD.createGNSSFile();
+
+        fileCreated.put(true);
 
         state = 1;
       }

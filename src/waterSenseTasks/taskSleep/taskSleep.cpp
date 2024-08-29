@@ -32,7 +32,7 @@ void taskSleep(void* params)
     // Begin
     if (state == 0)
     {
-      if (wakeReady.get())
+      if (wakeReady.get() && fileCreated.get())
       {
         // Start run timer
         runTimer = millis();

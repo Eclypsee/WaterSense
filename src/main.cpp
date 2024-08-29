@@ -28,7 +28,6 @@ RTC_DATA_ATTR uint32_t wakeCounter = 0; ///< A counter representing the number o
 RTC_DATA_ATTR uint32_t lastKnownUnix = 0;
 RTC_DATA_ATTR uint32_t unixRtcStart = 0;
 RTC_DATA_ATTR bool internal = false;
-RTC_DATA_ATTR void* globalGNSS;
 
 // Watchdog Checks
 Share<bool> clockCheck("Clock Working");
@@ -47,6 +46,7 @@ Share<bool> sdSleepReady("SD Sleep Ready"); ///< A shared variable to indicate t
 Share<bool> gnssPowerSave("GNSS Power Save");
 Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 Share<bool> gnssDataReady("GNSS buffer ready");
+Share<bool> fileCreated("SD files created");
 
 // Shares from GPS Clock
 Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
@@ -108,6 +108,7 @@ void setup()
   sdSleepReady.put(false);
   tempSleepReady.put(false);
   sonarSleepReady.put(false);
+  fileCreated.put(false);
   Wire.setPins(SDA, SCL);
   Wire.begin();
   Wire.setClock((uint32_t) CLK);

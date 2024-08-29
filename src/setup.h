@@ -17,7 +17,7 @@
  * @details Writes data to the SD card at the specified read intervals but does not sleep
  * 
  */
-//#define CONTINUOUS
+#define CONTINUOUS
 
 /**
  * @brief Define this constant to enable standalone GNSS measurements (no sonar or temp)
@@ -33,7 +33,7 @@
  */
 //#define VARIABLE_DUTY ///< Define this constant to enable variable duty cycle
 //----------------------||
-#define HI_READ 15  //||
+#define HI_READ 60*5  //||
 #define MID_READ 60*2 //||
 #define LOW_READ 60*1 //||
 //                    //||
@@ -42,7 +42,7 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_READ_TIME 29 * 60
+#define GNSS_READ_TIME 60 * 60 * 2
 
 #define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
 
@@ -83,6 +83,8 @@
 
 //-----------------------------------------------------------------------------------------------------||
 //---------- Define Pins ------------------------------------------------------------------------------||
+
+#define LED GPIO_NUM_2
 
 #define SD_CS GPIO_NUM_5 ///< SD card chip select pin
 

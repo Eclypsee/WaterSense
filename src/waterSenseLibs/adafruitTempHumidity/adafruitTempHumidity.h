@@ -18,7 +18,7 @@ class AdafruitTempHumidity
         gpio_num_t EN;
         uint8_t ADDRESS;
 
-        Adafruit_SHT31 Sensor = Adafruit_SHT31();
+        Adafruit_SHT31 Sensor = Adafruit_SHT31(&Wire);
 
     public:
         // Public class attributes and methods
