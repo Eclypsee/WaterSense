@@ -22,7 +22,7 @@ class GpsClock
         gpio_num_t TX;
         gpio_num_t EN;
 
-        uint32_t UNIX_OFFSET = 28800; // 8 hours
+        uint32_t UNIX_OFFSET = 0; // 8 hours
 
     public:
         uint32_t unix;
