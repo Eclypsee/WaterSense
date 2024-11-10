@@ -15,6 +15,7 @@
 #include "waterSenseTasks/taskMeasure/taskMeasure.h"
 #include "waterSenseTasks/taskSD/taskSD.h"
 #include "waterSenseTasks/taskClockGNSS/taskClockGNSS.h"
+#include "waterSenseTasks/taskClock2/taskClock2.h"
 #include "waterSenseTasks/taskSleep/taskSleep.h"
 #include "waterSenseTasks/taskVoltage/taskVoltage.h"
 #include "waterSenseTasks/taskWatch/taskWatch.h"
@@ -115,10 +116,15 @@ void setup()
 
   // Setup tasks
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+  #ifndef LEGACY
+    xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+  #endif
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
+  #ifdef LEGACY
+     xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
+  #endif
   
   #ifndef STANDALONE
     xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);

@@ -180,26 +180,28 @@ void GpsClock :: read(Adafruit_GPS &GPS)
  * @brief Get a current Unix timestamp
  * 
  * @param GPS A reference to the GPS object from which to pull time data
- * @return String A Unix timestamp
+ * @return uint32_t A Unix timestamp
  */
-String GpsClock :: getUnixTime(Adafruit_GPS &GPS)
+uint32_t GpsClock :: getUnixTime(Adafruit_GPS &GPS)
 {
     UnixTime stamp(0);
     stamp.setDateTime(2000 + GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
 
     unix = stamp.getUnix() + UNIX_OFFSET;
+    
+    return unix;
 
-    uint32_t myMillis = (millis() - millisOffset)%1000;
-    String unixString = String(unix) + ".";
-    if (myMillis < 100) unixString += "0";
-    if (myMillis < 10) unixString += "0";
-    unixString += String(myMillis);
+    // uint32_t myMillis = (millis() - millisOffset)%1000;
+    // String unixString = String(unix) + ".";
+    // if (myMillis < 100) unixString += "0";
+    // if (myMillis < 10) unixString += "0";
+    // unixString += String(myMillis);
 
 
-    return unixString;
+    // return unixString;
 }
 
-String GpsClock :: getUnixInternal(ESP32Time &RTC)
+uint32_t GpsClock :: getUnixInternal(ESP32Time &RTC)
 {
     // uint32_t unix = RTC.getEpoch();
     // String unixString = String(unix);
@@ -208,16 +210,18 @@ String GpsClock :: getUnixInternal(ESP32Time &RTC)
     uint32_t diff = RTC.getEpoch() - internalStart;
     unix = lastGpsUnix + diff;
 
-    uint32_t myMillis = RTC.getMillis();
+    return unix;
 
-    String unixString = String(unix) + ".";
+    // uint32_t myMillis = RTC.getMillis();
 
-    if (myMillis < 100) unixString += "0";
-    if (myMillis < 10) unixString += "0";
-    unixString += String(myMillis);
+    // String unixString = String(unix) + ".";
+
+    // if (myMillis < 100) unixString += "0";
+    // if (myMillis < 10) unixString += "0";
+    // unixString += String(myMillis);
 
 
-    return unixString;
+    // return unixString;
 }
 
 /**

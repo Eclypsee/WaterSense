@@ -27,6 +27,12 @@
 #define STANDALONE
 
 /**
+ * @brief Define this constant to enable v3 Adafruit Ultimate Breakout GPS (no sonar or temp)
+ * @details enables taskClock2 task
+ */
+#define LEGACY
+
+/**
  * @brief Define this constant to enable variable duty cycle
  * @details If undefined, HI_READ and HI_ALLIGN are used
  * 
@@ -98,11 +104,15 @@
  */
 #define SONAR_EN GPIO_NUM_33
 
+#define GPS_RX GPIO_NUM_16 ///< GPS receive pin
+#define GPS_TX GPIO_NUM_17 ///< GPS transmit pin
+
 /**
- * @brief GNSS I2C transmission pins
- * @details Used to communicate with GNSS
+ * @brief GPS enable pin
+ * @details GPS measurements are disabled when this pin is pulled low
  * 
  */
+#define GPS_EN GPIO_NUM_27
 
 #define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
 
