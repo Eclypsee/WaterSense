@@ -27,6 +27,7 @@ class GNSS
         SFE_UBLOX_GNSS gnss;
         GNSS(int sda, int scl, int clk);
         void start();
+        void start_no_survey();
         void getGNSSData();
         void setDisplayTime();
 };

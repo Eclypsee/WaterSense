@@ -10,6 +10,7 @@
  */
 
 #include <Arduino.h>
+#include <Wire.h>
 #include "setup.h"
 #include "sharedData.h"
 #include "waterSenseTasks/taskMeasure/taskMeasure.h"
@@ -19,6 +20,7 @@
 #include "waterSenseTasks/taskSleep/taskSleep.h"
 #include "waterSenseTasks/taskVoltage/taskVoltage.h"
 #include "waterSenseTasks/taskWatch/taskWatch.h"
+#include "waterSenseTasks/taskRadar/taskRadar.h"
 
 
 //-----------------------------------------------------------------------------------------------------||
@@ -36,6 +38,7 @@ Share<bool> sleepCheck("Sleep Working");
 Share<bool> measureCheck("Measure Working");
 Share<bool> voltageCheck("Voltage Working");
 Share<bool> sdCheck("SD Working");
+Share<bool> radarCheck("Radar Working");
 
 // Flags
 Share<bool> dataReady("Data Ready"); ///< A shared variable to indicate availability of new ultrasonic measurements
@@ -63,6 +66,11 @@ Share<uint64_t> sleepTime("Sleep Time"); ///< The number of microseconds to slee
 Share<int16_t> distance("Distance"); ///< The distance measured by the ultrasonic sensor in millimeters
 Share<float> temperature("Temperature"); ///< The temperature in Fahrenheit
 Share<float> humidity("Humidity"); ///< The relative humidity in %
+
+// Shares from radar
+Share<bool> radarSleepReady("Radar Sleep");
+Share<int> radarDistance("Radar Distance");
+Share<bool> radarDataReady("Radar Data Ready");
 
 //Shares from GNSS
 Share<int> numSFRBX("Number of SFRBX msgs"); ///<SFRBX msgs received by GNSS module
@@ -99,7 +107,6 @@ void setup()
   while (!Serial) {}
   Serial.println("\n\n\n\n");
 
-  wakeReady.put(false);
   READ_TIME.put((uint32_t) HI_READ);
   MINUTE_ALLIGN.put((uint16_t) HI_ALLIGN);
   gnssPowerSave.put(false);
@@ -114,10 +121,14 @@ void setup()
   Wire.begin();
   Wire.setClock((uint32_t) CLK);
 
-  // Setup tasks
+  temperature.put(0);
+  humidity.put(0);
+  wakeReady.put(true);
+
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  // Setup tasks
   #ifndef LEGACY
-    xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+    xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
   #endif
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
@@ -127,7 +138,11 @@ void setup()
   #endif
   
   #ifndef STANDALONE
-    xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
+    #ifdef RADAR
+      xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+    #else
+      xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
+    #endif
   #endif
 }
 

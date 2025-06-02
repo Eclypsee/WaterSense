@@ -23,10 +23,9 @@
  */
 void taskSD(void* params)
 {
-  SD_Data mySD(GPIO_NUM_5);
+  SD_Data mySD(SD_CS);
   File myFile;
   File GNSS;
-  int i = 0;
 
   // Task Setup
   uint8_t state = 0;
@@ -50,7 +49,9 @@ void taskSD(void* params)
         #ifndef STANDALONE
           myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
         #endif
-        GNSS = mySD.createGNSSFile();
+        #ifndef NO_SURVEY
+          GNSS = mySD.createGNSSFile();
+        #endif
 
         fileCreated.put(true);
 
@@ -61,16 +62,19 @@ void taskSD(void* params)
     // Check for data and populate buffer
     else if (state == 1)
     {
+
+      #ifndef NO_SURVEY
       // If gnssDataFlag is tripped, go to state 5
       if (gnssDataReady.get()) 
       {
         gnssDataReady.put(false);
         state = 5;
       }
+      #endif
 
       #ifndef STANDALONE
       // If data is available, untrip dataFlag go to state 2
-      if (dataReady.get() && !gnssDataReady.get())
+      if (dataReady.get())
       {
         dataReady.put(false);
         state = 2;
@@ -82,14 +86,6 @@ void taskSD(void* params)
       {
         state = 3;
       }
-
-      // while(!(writeBuffer.is_empty())) {
-      //   buffer[i++] = writeBuffer.get();
-      //   if(i == SIZE) {
-      //     i = 0;
-      //     gnssDataReady = true;
-      //   }
-      // }
     }
 
     // Store data
@@ -108,18 +104,18 @@ void taskSD(void* params)
       float solarVoltage = solar.get();
       float batteryVoltage = battery.get();
 
-      u_int32_t myTime = unixTime.get();
+      uint32_t myTime = unixTime.get();
 
       // Write data to SD card
-      //String path = mySD.getDataFilePath();
-      //myFile = SD.open(path, FILE_APPEND, false);
+      String path = mySD.getDataFilePath();
+      myFile = SD.open(path, FILE_APPEND, false);
       mySD.writeData(myFile, myDist, myTime, myTemp, myHum, batteryVoltage, solarVoltage);
-      //mySD.sleep(myFile);
+      mySD.sleep(myFile);
       // myFile.printf("%s, %d, %f, %f, %d\n", unixTime.get(), myDist, myTemp, myHum, myFix);
 
       // Print data to serial monitor
-      //Serial.printf("%s, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", displayTime.get(), myDist, myTemp, myHum, batteryVoltage, solarVoltage);
-      // Serial.println(myTime);
+      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, myTemp, myHum, batteryVoltage, solarVoltage);
+      Serial.println(myTime);
 
       state = 1;
     }
@@ -152,7 +148,7 @@ void taskSD(void* params)
     }
 
     // Store GNSS data
-    else if(state = 5)
+    else if(state == 5)
     {
       String path = mySD.getGNSSFilePath();
       GNSS = SD.open(path, FILE_APPEND, false);

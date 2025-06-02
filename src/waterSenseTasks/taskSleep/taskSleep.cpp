@@ -10,6 +10,7 @@
  */
 
 #include <Arduino.h>
+#include <Wire.h>
 #include "taskSleep.h"
 #include "setup.h"
 #include "sharedData.h"
@@ -73,6 +74,10 @@ void taskSleep(void* params)
     {
       #ifdef STANDALONE
         sonarSleepReady.put(true);
+        tempSleepReady.put(true);
+      #endif
+      #ifdef RADAR
+        sonarSleepReady.put(radarSleepReady.get());
         tempSleepReady.put(true);
       #endif
       // If all tasks are ready to sleep, go to state 3

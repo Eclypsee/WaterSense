@@ -24,13 +24,28 @@
  * @details Writes data to the SD card with minimal sleep time
  * 
  */
-#define STANDALONE
+//#define STANDALONE
+
+/**
+ * @brief Define this constant to disable GNSS measurements (only used as clock)
+ * @details Writes data to the SD card with minimal sleep time
+ * 
+ */
+#define NO_SURVEY
 
 /**
  * @brief Define this constant to enable v3 Adafruit Ultimate Breakout GPS (no sonar or temp)
- * @details enables taskClock2 task
+ * @details enables taskClock2
  */
-#define LEGACY
+//#define LEGACY
+
+/**
+ * @brief Define this constant to enable Radar instead of Ultrasonic
+ * @details enables taskRadar
+ * 
+ */
+
+#define RADAR
 
 /**
  * @brief Define this constant to enable variable duty cycle
@@ -39,7 +54,7 @@
  */
 //#define VARIABLE_DUTY ///< Define this constant to enable variable duty cycle
 //----------------------||
-#define HI_READ 60*5  //||
+#define HI_READ 60*5 //||
 #define MID_READ 60*2 //||
 #define LOW_READ 60*1 //||
 //                    //||
@@ -64,6 +79,7 @@
 #define SLEEP_PERIOD 100 ///< Sleep task period in ms
 #define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
 #define WATCHDOG_PERIOD 100 ///< Watchdog task period in ms
+#define RADAR_TASK_PERIOD 100
 
 // #define R1b 9.54 ///< Larger resistor for battery voltage divider
 // #define R2b 2.96 ///< Smaller resistor for battery voltage divider

@@ -50,6 +50,24 @@ void GNSS :: start() {
     Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
 }
 
+void GNSS :: start_no_survey() {
+  while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
+  { 
+    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
+  }
+
+  gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
+  gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
+  gnss.getTimeDOP();
+  gnss.saveConfiguration();
+  Serial.println("Time DOP");
+  
+
+  unixTime.put(gnss.getUnixEpoch());
+  fixType.put(gnss.getGnssFixOk());
+  Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
+}
+
 void GNSS :: getGNSSData() {
         unixTime.put(gnss.getUnixEpoch());
         if(gnss.checkUblox() == false) {

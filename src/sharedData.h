@@ -15,7 +15,6 @@
 #include "waterSenseLibs/shares/taskshare.h"
 #include "waterSenseLibs/shares/taskqueue.h"
 #include "setup.h"
-#include "waterSenseLibs/zedGNSS/zedGNSS.h"
 
 //-----------------------------------------------------------------------------------------------------||
 //---------- Shares & Queues --------------------------------------------------------------------------||
@@ -32,6 +31,7 @@ extern Share<bool> sleepCheck;
 extern Share<bool> measureCheck;
 extern Share<bool> voltageCheck;
 extern Share<bool> sdCheck;
+extern Share<bool> radarCheck;
 
 // Flags
 extern Share<bool> dataReady;
@@ -39,6 +39,8 @@ extern Share<bool> sleepFlag;
 extern Share<bool> clockSleepReady;
 extern Share<bool> sonarSleepReady;
 extern Share<bool> tempSleepReady;
+extern Share<bool> radarSleepReady;
+extern Share<bool> radarDataReady;
 extern Share<bool> sdSleepReady;
 extern Share<bool> gnssPowerSave;
 extern Share<bool> gnssDataReady;
@@ -58,6 +60,7 @@ extern Share<uint64_t> sleepTime;
 extern Share<int16_t> distance;
 extern Share<float> temperature;
 extern Share<float> humidity;
+extern Share<int> radarDistance;
 
 //Shares from GNSS
 extern Share<int> numSFRBX;
