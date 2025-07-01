@@ -121,14 +121,21 @@ void setup()
   Wire.begin();
   Wire.setClock((uint32_t) CLK);
 
-  temperature.put(0);
-  humidity.put(0);
-  wakeReady.put(true);
+
+  #ifdef RADAR
+    temperature.put(0);
+    humidity.put(0);
+  #endif
 
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
   // Setup tasks
   #ifndef LEGACY
-    xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+    #ifdef NO_SURVEY
+      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+    #endif
+    #else
+      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+    #endif
   #endif
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);

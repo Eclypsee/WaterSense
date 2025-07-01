@@ -89,7 +89,7 @@
 #define R1s 10.0 ///< Resistor for solar panel voltage divider
 #define R2s 10.0 ///< Resistor for solar panel voltage divider
 
-#define sdWriteSize 8192 ///<Write data to the SD card in blocks of 8192 bytes
+#define sdWriteSize 8192 ///<cWrite data to the SD card in blocks of 512 bytes
 
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||
