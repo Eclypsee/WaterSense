@@ -132,7 +132,6 @@ void setup()
   #ifndef LEGACY
     #ifdef NO_SURVEY
       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-    #endif
     #else
       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
     #endif
