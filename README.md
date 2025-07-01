@@ -4,7 +4,7 @@ A multi-sensor water monitoring system built on ESP32 using FreeRTOS tasks for c
 
 ## Overview
 
-WaterSense is an embedded water monitoring solution that measures water levels using ultrasonic/radar sensors, environmental conditions, and GPS positioning. Data is logged to SD card with intelligent power management for long-term deployment.
+WaterSense is an embedded water monitoring solution that measures water levels using ultrasonic/radar sensors, environmental conditions, and GPS/GNSS positioning. Data is logged to SD card with intelligent power management for long-term deployment.
 
 **Features:**
 - 🌊 Water level measurement (ultrasonic or radar)
