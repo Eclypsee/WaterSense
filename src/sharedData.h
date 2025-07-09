@@ -42,6 +42,7 @@ extern Share<bool> tempSleepReady;
 extern Share<bool> radarSleepReady;
 extern Share<bool> radarDataReady;
 extern Share<bool> sdSleepReady;
+extern Share<bool> bluetoothSleepReady;
 extern Share<bool> gnssPowerSave;
 extern Share<bool> gnssDataReady;
 extern Share<bool> fileCreated;

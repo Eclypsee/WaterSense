@@ -21,7 +21,7 @@
 #include "waterSenseTasks/taskVoltage/taskVoltage.h"
 #include "waterSenseTasks/taskWatch/taskWatch.h"
 #include "waterSenseTasks/taskRadar/taskRadar.h"
-
+#include "waterSenseTasks/taskBluetooth/taskBluetooth.h"
 
 //-----------------------------------------------------------------------------------------------------||
 //---------- Shares & Queues --------------------------------------------------------------------------||
@@ -47,6 +47,7 @@ Share<bool> clockSleepReady("Clock Sleep Ready"); ///< A shared variable to indi
 Share<bool> sonarSleepReady("Sonar Sleep Ready"); ///< A shared variable to indicate the sonar sensor is ready to sleep
 Share<bool> tempSleepReady("Temp Sleep Ready"); ///< A shared variable to indicate the temp sensor is ready to sleep
 Share<bool> sdSleepReady("SD Sleep Ready"); ///< A shared variable to indicate the SD card is ready to sleep
+Share<bool> bluetoothSleepReady("Bluetooth Sleep Ready"); ///< A shared variable to indicate the Bluetooth is ready to sleep
 Share<bool> gnssPowerSave("GNSS Power Save");
 Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 Share<bool> gnssDataReady("GNSS buffer ready");
@@ -127,29 +128,30 @@ void setup()
     humidity.put(0);
   #endif
 
-  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  // Setup tasks
-  #ifndef LEGACY
-    #ifdef NO_SURVEY
-      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-    #else
-      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
-    #endif
-  #endif
+  // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  // // Setup tasks
+  // #ifndef LEGACY
+  //   #ifdef NO_SURVEY
+  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+  //   #else
+  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+  //   #endif
+  // #endif
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
-  #ifdef LEGACY
-     xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
-  #endif
+  xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
+  // #ifdef LEGACY
+  //    xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
+  // #endif
   
-  #ifndef STANDALONE
-    #ifdef RADAR
-      xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
-    #else
-      xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
-    #endif
-  #endif
+  // #ifndef STANDALONE
+  //   #ifdef RADAR
+  //     xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+  //   #else
+  //     xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
+  //   #endif
+  // #endif
 }
 
 void loop()
