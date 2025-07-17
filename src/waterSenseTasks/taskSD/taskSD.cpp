@@ -35,6 +35,7 @@ void taskSD(void* params)
   {
     if(writeFinishedSD.get() && stopOperationSD.get()){
       state = 6;//SUSPEND SD OPERATIONS
+      continue;
     }
     // Begin
     if (state == 0)

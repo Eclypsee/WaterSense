@@ -44,8 +44,16 @@
  * @details enables taskRadar
  * 
  */
-
 #define RADAR
+
+/**
+ * @brief Define the pins for the DEFAULT i2c bus
+ * @details I know radar has its own separate scl_radar... ignore that. let it have its own bus
+ * 
+ */
+#define SCL 22 
+#define SDA 21 
+#define CLK 100000
 
 /**
  * @brief Define this constant to enable variable duty cycle

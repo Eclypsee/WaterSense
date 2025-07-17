@@ -110,8 +110,11 @@ void taskBluetooth(void* params)
           state = 2;
           vTaskPrioritySet(NULL, 20); // Increase priority when connected
           bluetoothSleepReady.put(false); // Prevent sleep while connected
-          while(!writeFinishedSD.get()) {}
           stopOperationSD.put(true);//stop SD operation after writes finished
+          while(writeFinishedSD.get()!=true){
+            vTaskDelay(pdMS_TO_TICKS(20));
+            bluetoothCheck.put(true);
+          }
           vTaskDelay(pdMS_TO_TICKS(100));//delay a bit to let SD task wrap up. 
         }
 

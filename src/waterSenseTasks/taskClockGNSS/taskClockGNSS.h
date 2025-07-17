@@ -9,8 +9,5 @@
  * 
  */
 
-#define SCL 22 
-#define SDA 21 
-#define CLK 100000
 
 void taskClockGNSS(void* params);
