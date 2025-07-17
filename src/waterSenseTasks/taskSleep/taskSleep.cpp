@@ -81,7 +81,7 @@ void taskSleep(void* params)
         tempSleepReady.put(true);
       #endif
       // If all tasks are ready to sleep, go to state 3
-      if (sonarSleepReady.get() && tempSleepReady.get() && clockSleepReady.get() && sdSleepReady.get())
+      if (sonarSleepReady.get() && tempSleepReady.get() && clockSleepReady.get() && sdSleepReady.get() && bluetoothSleepReady.get())
       {
         Serial.printf("Sleep state 2 -> 3 Time: %s\n", displayTime.get());
         state = 3;

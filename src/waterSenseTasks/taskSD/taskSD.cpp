@@ -33,6 +33,9 @@ void taskSD(void* params)
   // Task Loop
   while (true)
   {
+    if(writeFinishedSD.get() && stopOperationSD.get()){
+      state = 6;//SUSPEND SD OPERATIONS
+    }
     // Begin
     if (state == 0)
     {
@@ -41,16 +44,22 @@ void taskSD(void* params)
         // Check/create header files
         if ((wakeCounter % 1000) == 0)
         {
+          writeFinishedSD.put(false);
           mySD.writeHeader();
+          writeFinishedSD.put(true);
         }
 
 
 
         #ifndef STANDALONE
+          writeFinishedSD.put(false);
           myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
+          writeFinishedSD.put(true);
         #endif
         #ifndef NO_SURVEY
+          writeFinishedSD.put(false);
           GNSS = mySD.createGNSSFile();
+          writeFinishedSD.put(true);
         #endif
 
         fileCreated.put(true);
@@ -91,6 +100,7 @@ void taskSD(void* params)
     // Store data
     else if (state == 2)
     {
+      writeFinishedSD.put(false);
       // Get sonar data
       int16_t myDist = distance.get();
 
@@ -117,12 +127,15 @@ void taskSD(void* params)
       Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, myTemp, myHum, batteryVoltage, solarVoltage);
       Serial.println(myTime);
 
+      writeFinishedSD.put(true);
+
       state = 1;
     }
 
     // Write Log
     else if (state == 3)
     {
+      writeFinishedSD.put(false);
       // If we have a fix, write data to the log
       if (fixType.get())
       {
@@ -133,6 +146,8 @@ void taskSD(void* params)
         int32_t alt = altitude.get();
 
         mySD.writeLog(tim, wakeCounter, lat, lon, alt);
+
+        writeFinishedSD.put(true);
       }
 
       state = 4;
@@ -150,6 +165,8 @@ void taskSD(void* params)
     // Store GNSS data
     else if(state == 5)
     {
+      writeFinishedSD.put(false);
+      
       String path = mySD.getGNSSFilePath();
       GNSS = SD.open(path, FILE_APPEND, false);
       mySD.writeGNSSData(GNSS, myBuffer);
@@ -158,7 +175,19 @@ void taskSD(void* params)
 
       Serial.println("GNSS data written to SD card");
 
+      writeFinishedSD.put(true);
+
       state = 1;
+    }
+    else if(state == 6)//suspend sd operations(not sleep)
+    {
+      // Close data file
+      mySD.sleep(myFile);
+      mySD.sleep(GNSS);
+      sdSleepReady.put(true);
+      if(stopOperationSD.get() == false){
+        state = 1;
+      }
     }
 
     sdCheck.put(true);

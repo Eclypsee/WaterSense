@@ -45,6 +45,7 @@ pio device monitor
 
 ### Configuration
 Configure WaterSense using either the GUI tool or by editing `src/setup.h` manually.
+Wake up → Stay awake for 5 minutes (HI_READ) → Sleep for 10 minutes (HI_ALLIGN) → Repeat
 
 #### GUI Configuration Tool 🖥️
 Use the streamlined configuration tool:

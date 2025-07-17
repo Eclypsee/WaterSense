@@ -55,7 +55,7 @@ void taskBluetooth(void* params)
   while (true)
   {
       if(state == 0) {
-        if(true) {//TO DO: change this to wakeReady.get() later
+        if(wakeReady.get()) {
           
           // Reset file transfer state variables
           offset = 0;
@@ -91,6 +91,11 @@ void taskBluetooth(void* params)
 
       else if(state == 1) {//ADVERTISE
         
+        //resume normal SD operations
+        stopOperationSD.put(false);
+
+        //tell watchdog I am alive
+        bluetoothCheck.put(true);
         // Wait 9.9 seconds using vTaskDelay
         vTaskDelay(pdMS_TO_TICKS(9900));
         
@@ -105,7 +110,9 @@ void taskBluetooth(void* params)
           state = 2;
           vTaskPrioritySet(NULL, 20); // Increase priority when connected
           bluetoothSleepReady.put(false); // Prevent sleep while connected
-          vTaskDelay(pdMS_TO_TICKS(100));//delay a bit to let SD card finish writing and disable SDtask
+          while(!writeFinishedSD.get()) {}
+          stopOperationSD.put(true);//stop SD operation after writes finished
+          vTaskDelay(pdMS_TO_TICKS(100));//delay a bit to let SD task wrap up. 
         }
 
         // Stop advertising after 100ms
@@ -130,7 +137,7 @@ void taskBluetooth(void* params)
               // Generate the file list
               if (bluetoothFileManager.generateFileList()) {
                 // Now load the generated filelist.txt
-                if (bluetoothFileManager.loadFile("filelist.txt")) {
+                if (bluetoothFileManager.loadFile("/filelist.txt")) {
                   calculatedChecksum = bluetoothFileManager.getCurrentChecksum();
                   Serial.print("File list generated: ");
                   Serial.print(bluetoothFileManager.getFileData().length());
@@ -286,5 +293,6 @@ void taskBluetooth(void* params)
     
     // Delay for better BLE responsiveness while reducing CPU usage
     vTaskDelay(pdMS_TO_TICKS(10));
+    bluetoothCheck.put(true);
   }
 }

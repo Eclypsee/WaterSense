@@ -30,6 +30,7 @@ void taskWatch(void* params)
   bool sleep = false;
   bool measure = false;
   bool gnss = false;
+  bool bluetooth = false;
 
   uint32_t taskTimer = millis();
 
@@ -57,6 +58,7 @@ void taskWatch(void* params)
       voltage = voltageCheck.get();
       sleep = sleepCheck.get();
       measure = measureCheck.get();
+      bluetooth = bluetoothCheck.get();
 
       #ifdef STANDALONE
         measure = true;
@@ -74,8 +76,8 @@ void taskWatch(void* params)
           voltageCheck.put(false);
           sleepCheck.put(false);
           measureCheck.put(false);
+          bluetoothCheck.put(false);
       }
-
       // Otherwise, check the timer
       else if ((millis() - taskTimer) > WATCH_TIMER)
       {

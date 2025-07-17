@@ -32,6 +32,7 @@ extern Share<bool> measureCheck;
 extern Share<bool> voltageCheck;
 extern Share<bool> sdCheck;
 extern Share<bool> radarCheck;
+extern Share<bool> bluetoothCheck;
 
 // Flags
 extern Share<bool> dataReady;
@@ -46,6 +47,8 @@ extern Share<bool> bluetoothSleepReady;
 extern Share<bool> gnssPowerSave;
 extern Share<bool> gnssDataReady;
 extern Share<bool> fileCreated;
+extern Share<bool> stopOperationSD;
+extern Share<bool> writeFinishedSD;
 
 // Shares from GNSS
 extern Share<int32_t> latitude;

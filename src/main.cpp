@@ -39,6 +39,7 @@ Share<bool> measureCheck("Measure Working");
 Share<bool> voltageCheck("Voltage Working");
 Share<bool> sdCheck("SD Working");
 Share<bool> radarCheck("Radar Working");
+Share<bool> bluetoothCheck("Bluetooth Working");
 
 // Flags
 Share<bool> dataReady("Data Ready"); ///< A shared variable to indicate availability of new ultrasonic measurements
@@ -52,6 +53,8 @@ Share<bool> gnssPowerSave("GNSS Power Save");
 Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 Share<bool> gnssDataReady("GNSS buffer ready");
 Share<bool> fileCreated("SD files created");
+Share<bool> stopOperationSD("Stop SD Operations");///< A shared variable to STOP ALL SD operations
+Share<bool> writeFinishedSD("Write Finished");///< A shared variable to indicate SD has finished writing
 
 // Shares from GPS Clock
 Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
@@ -117,7 +120,11 @@ void setup()
   sdSleepReady.put(false);
   tempSleepReady.put(false);
   sonarSleepReady.put(false);
+  bluetoothSleepReady.put(false);
   fileCreated.put(false);
+  stopOperationSD.put(false);
+  writeFinishedSD.put(false);
+
   Wire.setPins(SDA, SCL);
   Wire.begin();
   Wire.setClock((uint32_t) CLK);
@@ -128,7 +135,7 @@ void setup()
     humidity.put(0);
   #endif
 
-  // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  //xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
   // // Setup tasks
   // #ifndef LEGACY
   //   #ifdef NO_SURVEY
@@ -137,10 +144,15 @@ void setup()
   //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
   //   #endif
   // #endif
-  xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
+
+
+  wakeReady.put(true);
+  delay(2000);
+  //xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
+
   // #ifdef LEGACY
   //    xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
   // #endif

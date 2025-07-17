@@ -11,6 +11,7 @@
 
 #include "bluetooth.h"
 #include "setup.h"
+#include <SD.h>
 
 // Global instance
 BluetoothFileManager bluetoothFileManager;
@@ -26,48 +27,13 @@ BluetoothFileManager::BluetoothFileManager() {
 bool BluetoothFileManager::begin() {
     // Refresh file list on initialization
     //refreshFileList();
+    if (!SD.begin(SD_CS)) {
+        Serial.println("SD card initialization failed!");
+        return false;
+    }
     return true;
 }
 
-// String BluetoothFileManager::getFileListFromSD() {
-//     String list = "";
-//     File root = SD.open("/");
-    
-//     if (!root) {
-//         Serial.println("Failed to open SD card root directory");
-//         return "Error: Cannot access SD card";
-//     }
-    
-//     if (!root.isDirectory()) {
-//         Serial.println("Root is not a directory");
-//         root.close();
-//         return "Error: Invalid SD card structure";
-//     }
-    
-//     File file = root.openNextFile();
-//     int fileCount = 0;
-    
-//     while (file) {
-//         if (!file.isDirectory()) {
-//             if (fileCount > 0) {
-//                 list += ",";
-//             }
-//             list += file.name();
-//             fileCount++;
-//         }
-//         file.close(); // Close current file before getting next
-//         file = root.openNextFile();
-//     }
-    
-//     root.close();
-    
-//     if (fileCount == 0) {
-//         list = "No files found on SD card";
-//     }
-    
-//     Serial.printf("Found %d files on SD card\n", fileCount);
-//     return list;
-// }
 
 bool BluetoothFileManager::loadFileFromSD(const String& fileName) {
     // Clear previous file data
@@ -145,11 +111,6 @@ uint32_t BluetoothFileManager::getCurrentChecksum() {
     return currentChecksum;
 }
 
-// void BluetoothFileManager::refreshFileList() {
-//     fileList = getFileListFromSD();
-//     Serial.printf("File list refreshed: %s\n", fileList.c_str());
-// }
-
 uint32_t BluetoothFileManager::calculateChecksum(const String& data) {
     uint32_t checksum = 0;
     for (int i = 0; i < data.length(); i++) {
@@ -167,7 +128,8 @@ void BluetoothFileManager::clearFile() {
 
 bool BluetoothFileManager::generateFileList() {
     // Create filelist.txt on SD card
-    File listFile = SD.open("filelist.txt", FILE_WRITE);
+    SD.remove("/filelist.txt");
+    File listFile = SD.open("/filelist.txt", FILE_WRITE);
     
     if (!listFile) {
         Serial.println("Failed to create filelist.txt");
