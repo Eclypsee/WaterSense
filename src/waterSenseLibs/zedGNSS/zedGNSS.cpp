@@ -41,12 +41,29 @@ void GNSS :: start() {
     Serial.println("Time DOP");
     
 
+    Serial.println("Getting Unix Epoch...");
     unixTime.put(gnss.getUnixEpoch());
+    Serial.println("Got Unix Epoch");
+
+    Serial.println("Setting display time...");
     setDisplayTime();
+    Serial.println("Set display time");
+
+    Serial.println("Getting altitude...");
     altitude.put(gnss.getAltitude());
+    Serial.println("Got altitude");
+
+    Serial.println("Getting latitude...");
     latitude.put(gnss.getLatitude());
+    Serial.println("Got latitude");
+
+    Serial.println("Getting longitude...");
     longitude.put(gnss.getLongitude());
+    Serial.println("Got longitude");
+
+    Serial.println("Getting fix type...");
     fixType.put(gnss.getGnssFixOk());
+    Serial.println("Got fix type");
     Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
 }
 

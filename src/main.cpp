@@ -135,35 +135,34 @@ void setup()
     humidity.put(0);
   #endif
 
-  //xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  // // Setup tasks
-  // #ifndef LEGACY
-  //   #ifdef NO_SURVEY
-  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-  //   #else
-  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
-  //   #endif
-  // #endif
+  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  // Setup tasks
+  #ifndef LEGACY
+    #ifdef NO_SURVEY
+      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+    #else
+      xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+    #endif
+  #endif
 
 
-  wakeReady.put(true);
-  delay(2000);
-  //xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
+
+  xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
-  // #ifdef LEGACY
-  //    xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
-  // #endif
+  #ifdef LEGACY
+     xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
+  #endif
   
-  // #ifndef STANDALONE
-  //   #ifdef RADAR
-  //     xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
-  //   #else
-  //     xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
-  //   #endif
-  // #endif
+  #ifndef STANDALONE
+    #ifdef RADAR
+      xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+    #else
+      xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
+    #endif
+  #endif
 }
 
 void loop()

@@ -24,14 +24,14 @@
  * @details Writes data to the SD card with minimal sleep time
  * 
  */
-//#define STANDALONE
+#define STANDALONE
 
 /**
  * @brief Define this constant to disable GNSS measurements (only used as clock)
  * @details Writes data to the SD card with minimal sleep time
  * 
  */
-#define NO_SURVEY
+//#define NO_SURVEY
 
 /**
  * @brief Define this constant to enable v3 Adafruit Ultimate Breakout GPS (no sonar or temp)

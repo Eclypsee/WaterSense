@@ -51,7 +51,7 @@ void taskClockGNSS(void* params)
         #ifdef NO_SURVEY
           myGNSS.start_no_survey();
         #else
-          myGNSS.start()
+          myGNSS.start();
         #endif
         state = 1;
       }
@@ -204,7 +204,8 @@ void taskClockGNSS(void* params)
       #ifdef NO_SURVEY
         myGNSS.start_no_survey();
       #else
-        myGNSS.start()
+        wakeReady.put(true);
+        myGNSS.start();
       #endif
       Serial.printf("GPS Clock2 4 -> 1, GPS getting fix (blink) %u\n", myGNSS.gnss.getFixType());
 

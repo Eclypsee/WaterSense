@@ -49,7 +49,7 @@ void taskBluetooth(void* params)
 
   // Wait for Serial to be ready
   vTaskDelay(pdMS_TO_TICKS(2000));
-  Serial.println("Bluetooth task started");
+  Serial.println("Bluetooth task started, awaiting wakeready");
 
   // Task Loop
   while (true)
