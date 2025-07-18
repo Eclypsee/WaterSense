@@ -64,7 +64,8 @@ void GNSS :: start() {
     Serial.println("Getting fix type...");
     fixType.put(gnss.getGnssFixOk());
     Serial.println("Got fix type");
-    Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
+    wakeReady.put(true);
+    Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
 }
 
 void GNSS :: start_no_survey() {
@@ -82,7 +83,8 @@ void GNSS :: start_no_survey() {
 
   unixTime.put(gnss.getUnixEpoch());
   fixType.put(gnss.getGnssFixOk());
-  Serial.printf("GNSS successfully initialized Fix Type: %hhu Good Fix: %d\n", fixType.get(), wakeReady.get());
+  wakeReady.put(true);
+  Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
 }
 
 void GNSS :: getGNSSData() {

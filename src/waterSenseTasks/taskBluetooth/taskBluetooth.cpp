@@ -33,8 +33,9 @@ void taskBluetooth(void* params)
   // BLE Service and Characteristics (global scope)
   BLEService dataService("12345678-1234-5678-1234-56789abcdef0");
   BLEStringCharacteristic fileRequestChar("12345678-1234-5678-1234-56789abcdef2", BLEWrite, 50);
-  BLECharacteristic fileChunkChar("12345678-1234-5678-1234-56789abcdef3", BLERead | BLENotify, 110);
+  BLECharacteristic fileChunkChar("12345678-1234-5678-1234-56789abcdef3", BLENotify, 110);
   BLEStringCharacteristic checksumChar("12345678-1234-5678-1234-56789abcdef4", BLERead | BLEWrite, 50);
+  BLEStringCharacteristic statusChar("12345678-1234-5678-1234-56789abcdef5", BLENotify, 50);
 
   // File transfer variables
   String requestedFile = "";
@@ -77,6 +78,7 @@ void taskBluetooth(void* params)
           dataService.addCharacteristic(fileRequestChar);
           dataService.addCharacteristic(fileChunkChar);
           dataService.addCharacteristic(checksumChar);
+          dataService.addCharacteristic(statusChar);
 
           BLE.addService(dataService);
           
@@ -97,7 +99,7 @@ void taskBluetooth(void* params)
         //tell watchdog I am alive
         bluetoothCheck.put(true);
         // Wait 9.9 seconds using vTaskDelay
-        vTaskDelay(pdMS_TO_TICKS(9900));
+        vTaskDelay(pdMS_TO_TICKS(1000));
         
         // Start advertising
         BLE.advertise();
@@ -151,6 +153,7 @@ void taskBluetooth(void* params)
                   bluetoothSleepReady.put(false);
                 } else {
                   Serial.println("Failed to load generated filelist.txt");
+                  statusChar.writeValue("GENERATION_FAILED");
                   state = 5;
                 }
               } else {
@@ -172,6 +175,7 @@ void taskBluetooth(void* params)
                 bluetoothSleepReady.put(false);
               } else {
                 Serial.print("Failed to load file: ");
+                statusChar.writeValue("FILE_LOAD_FAILED");
                 Serial.println(requestedFile);
                 state = 5;
               }
@@ -200,6 +204,7 @@ void taskBluetooth(void* params)
           } else {
             // Transfer complete, send checksum for verification
             Serial.println("Transfer complete. Waiting for checksum verification...");
+            statusChar.writeValue("TRANSFER_COMPLETE");
             checksumChar.writeValue(String(calculatedChecksum));
             state = 4;
           }
@@ -239,16 +244,27 @@ void taskBluetooth(void* params)
               
               if (receivedChecksum == calculatedChecksum) {
                 Serial.println("Checksum verified! Transfer successful.");
+                statusChar.writeValue("TRANSFER_SUCCESS");
                 transferComplete = true;
                 state = 2;
               } else {
                 Serial.println("Checksum mismatch! Restarting transfer...");
+                statusChar.writeValue("RETRY_TRANSFER");
                 // Reset for retry
                 offset = 0;
-                state = 3;
+                requestedFile = "";
+                calculatedChecksum = 0;
+                transferComplete = false;
+                state = 2;
               }
             } else {
               Serial.println("Invalid checksum format received");
+              statusChar.writeValue("RETRY_TRANSFER");
+              // Reset for retry
+              offset = 0;
+              requestedFile = "";
+              calculatedChecksum = 0;
+              transferComplete = false;
               state = 2;
             }
           }
@@ -272,6 +288,7 @@ void taskBluetooth(void* params)
 
       else if(state == 5) {//ERROR
         Serial.println("BLE Error state - sending error message to client");
+        statusChar.writeValue("BLE_ERR");
         
         // Reset file transfer state variables
         requestedFile = "";
@@ -284,7 +301,7 @@ void taskBluetooth(void* params)
         bluetoothFileManager.clearFile();
         
         // Send error message to client
-        fileChunkChar.writeValue("Error: File transfer failed");
+        statusChar.writeValue("Error: File transfer failed");
         vTaskDelay(pdMS_TO_TICKS(1000)); // Wait a bit before returning to connected state
         state = 2;
         bluetoothSleepReady.put(false);

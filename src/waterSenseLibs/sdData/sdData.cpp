@@ -74,8 +74,8 @@ void SD_Data :: writeHeader()
         // Create header with title, timestamp, and column names
         read_me.println("");
         read_me.printf(
-            "Cal Poly Tide Sensor\n"
-            "https://github.com/adunn-kal/workSoftware/tree/master/waterSense\n\n"
+            "Cal Poly Tide Sensor Ver. 3, Now With Radar AND BLE :)\n"
+            "https://github.com/Eclypsee/WaterSense\n\n"
             "Data File format:\n"
             "UNIX Time (GMT), Distance (mm), External Temp (F), Humidity (%), Battery Voltage (V), Solar Panel Voltage (V)\n"
             "Current Battery Voltage: %f V\n", battery.get());
@@ -174,10 +174,10 @@ void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude
     File logFile = SD.open("/logFile.txt", FILE_WRITE);
     if(!logFile) return;
 
-    logFile.printf("Wake Number: %d\n", wakeCounter);
-    logFile.println("UNIX Time (GMT), Latitude (decimal degrees), Longitude(decimal degrees), Altitude (meters above MSL)");
-    logFile.print(unixTime);
-    logFile.printf(", %0.5f, %0.5f, %0.2f\n", latitude, longitude, altitude);
+    if (logFile.size() == 0) {
+        logFile.println("Wake Count, UNIX Time (GMT), Latitude (decimal degrees), Longitude (decimal degrees), Altitude (meters above MSL)");
+    }
+    logFile.printf("%u, %u, %0.5f, %0.5f, %0.2f\n", wakeCounter, unixTime, latitude, longitude, altitude);
     logFile.close();
 }
 

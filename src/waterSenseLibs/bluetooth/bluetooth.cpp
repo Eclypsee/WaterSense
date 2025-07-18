@@ -130,46 +130,55 @@ bool BluetoothFileManager::generateFileList() {
     // Create filelist.txt on SD card
     SD.remove("/filelist.txt");
     File listFile = SD.open("/filelist.txt", FILE_WRITE);
-    
     if (!listFile) {
         Serial.println("Failed to create filelist.txt");
         return false;
     }
-    
 
-    
-    // Get all files from SD card
-    File root = SD.open("/");
-    
-    if (!root) {
-        Serial.println("Failed to open SD card root directory");
-        listFile.close();
-        return false;
-    }
-    
-    if (!root.isDirectory()) {
-        Serial.println("Root is not a directory");
-        root.close();
-        listFile.close();
-        return false;
-    }
-    
-    File file = root.openNextFile();
     int fileCount = 0;
-    
-    while (file) {
-        if (!file.isDirectory()) {
-            // Write filename to filelist.txt, one per line
-            listFile.println(file.name());
-            fileCount++;
+
+    // Helper lambda to list files in a directory
+    auto listDir = [&](const char* dirName) {
+        if (!SD.exists(dirName)) return;
+        File dir = SD.open(dirName);
+        if (!dir || !dir.isDirectory()) {
+            if (dir) dir.close();
+            return;
         }
-        file.close(); // Close current file before getting next
-        file = root.openNextFile();
+        File file = dir.openNextFile();
+        while (file) {
+            if (!file.isDirectory()) {
+                // Write as "Data/filename.txt" or "GNSS_Data/filename.ubx"
+                String fullPath = String(dirName) + "/" + file.name();
+                listFile.println(fullPath);
+                fileCount++;
+            }
+            file.close();
+            file = dir.openNextFile();
+        }
+        dir.close();
+    };
+
+    // List files in /Data and /GNSS_Data if they exist
+    listDir("/Data");
+    listDir("/GNSS_Data");
+
+    // List files in root (excluding directories)
+    File root = SD.open("/");
+    if (root && root.isDirectory()) {
+        File file = root.openNextFile();
+        while (file) {
+            if (!file.isDirectory()) {
+                listFile.println(String("/")+file.name());
+                fileCount++;
+            }
+            file.close();
+            file = root.openNextFile();
+        }
+        root.close();
     }
-    
-    root.close();
+
     listFile.close();
-    
     Serial.printf("Generated filelist.txt with %d files\n", fileCount);
     return true;
 }
