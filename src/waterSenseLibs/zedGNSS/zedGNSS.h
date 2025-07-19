@@ -9,7 +9,6 @@
 
 #include <SPI.h> 
 #include <Wire.h> 
-#include <SD.h>
 #include <iostream> 
 #include <SparkFun_u-blox_GNSS_v3.h>
 #include "sharedData.h"

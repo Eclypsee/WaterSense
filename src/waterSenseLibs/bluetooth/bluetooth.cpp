@@ -11,7 +11,8 @@
 
 #include "bluetooth.h"
 #include "setup.h"
-#include <SD.h>
+#include <SdFat.h>
+#include "waterSenseLibs/sdData/sdData.h"
 
 // Global instance
 BluetoothFileManager bluetoothFileManager;
@@ -27,7 +28,7 @@ BluetoothFileManager::BluetoothFileManager() {
 bool BluetoothFileManager::begin() {
     // Refresh file list on initialization
     //refreshFileList();
-    if (!SD.begin(SD_CS)) {
+    if (!SD.begin(SD_CS, SD_SCK_MHZ(10))) {
         Serial.println("SD card initialization failed!");
         return false;
     }
@@ -59,9 +60,9 @@ bool BluetoothFileManager::loadFileFromSD(const String& fileName) {
     size_t fileSize = file.size();
     Serial.printf("Loading file: %s (size: %d bytes)\n", fileName.c_str(), fileSize);
     
-    // Check if file is too large (limit to 64KB for memory safety)
-    if (fileSize > 65536) {
-        Serial.printf("File too large: %d bytes (max 64KB)\n", fileSize);
+    // Check if file is too large (limit to 100KB for memory safety)
+    if (fileSize > 100*1024) {
+        Serial.printf("File too large: %d bytes (max 100KB)\n", fileSize);
         file.close();
         return false;
     }
@@ -125,19 +126,66 @@ void BluetoothFileManager::clearFile() {
     fileLoaded = false;
     currentChecksum = 0;
 }
-
 bool BluetoothFileManager::generateFileList() {
-    // Create filelist.txt on SD card
-    SD.remove("/filelist.txt");
-    File listFile = SD.open("/filelist.txt", FILE_WRITE);
+    char nameBuf[64];
+    const size_t MAX_FILE_SIZE = 90 * 1024;  // 90 KB
+    int fileIndex = 1;
+    int fileCount = 0;
+
+    auto getFileName = [](int index) {
+        return "/filelist" + String(index) + ".txt";
+    };
+
+   
+    // Remove all existing filelistN.txt files AND MACOS specific ._file stuff in root only
+    File root = SD.open("/");
+    int max_iter = 100;
+    if (root && root.isDirectory()) {
+        File file = root.openNextFile();
+        while (file && max_iter>=0) {
+            if (!file.isDirectory()) {
+                file.getName(nameBuf, sizeof(nameBuf));
+                String name =  String(nameBuf);// Step 1: Get name
+                file.close();              // Step 2: Close file
+
+                if ((name.indexOf("filelist") != -1) || (name.indexOf("._") != -1)) {
+                    Serial.println("Removing old file: " + name);
+                    SD.remove(String("/")+name.c_str()); // Step 3: Now it's safe
+                }
+            } else {
+                file.close();  // Still close directories too
+            }
+
+            file = root.openNextFile();
+            max_iter--;
+        }
+        root.close();
+    }
+
+
+     // Prepare first file
+    File listFile = SD.open(getFileName(fileIndex).c_str(), O_WRITE | O_CREAT | O_APPEND);
     if (!listFile) {
-        Serial.println("Failed to create filelist.txt");
+        Serial.println("Failed to create initial filelist");
         return false;
     }
 
-    int fileCount = 0;
+    // File rotation logic
+    auto writePath = [&](const String& path) {
+        if (!listFile) return;
+        listFile.println(path);
+        fileCount++;
 
-    // Helper lambda to list files in a directory
+        // If current file exceeds size limit, roll over
+        if (listFile.size() >= MAX_FILE_SIZE) {
+            listFile.close();
+            fileIndex++;
+            SD.remove(getFileName(fileIndex).c_str());
+            listFile = SD.open(getFileName(fileIndex).c_str(), O_WRITE | O_CREAT | O_APPEND);
+        }
+    };
+
+    // Directory traversal logic
     auto listDir = [&](const char* dirName) {
         if (!SD.exists(dirName)) return;
         File dir = SD.open(dirName);
@@ -147,11 +195,11 @@ bool BluetoothFileManager::generateFileList() {
         }
         File file = dir.openNextFile();
         while (file) {
-            if (!file.isDirectory()) {
-                // Write as "Data/filename.txt" or "GNSS_Data/filename.ubx"
-                String fullPath = String(dirName) + "/" + file.name();
-                listFile.println(fullPath);
-                fileCount++;
+            file.getName(nameBuf, sizeof(nameBuf));
+            if (!file.isDirectory()&&(String(nameBuf).indexOf("filelist")==-1)) {
+                String fullPath = String(dirName) + "/" + String(nameBuf);
+                writePath(fullPath);
+                Serial.println("Writing path: " + fullPath);
             }
             file.close();
             file = dir.openNextFile();
@@ -159,26 +207,27 @@ bool BluetoothFileManager::generateFileList() {
         dir.close();
     };
 
-    // List files in /Data and /GNSS_Data if they exist
+    // Walk target directories
     listDir("/Data");
     listDir("/GNSS_Data");
 
-    // List files in root (excluding directories)
-    File root = SD.open("/");
-    if (root && root.isDirectory()) {
-        File file = root.openNextFile();
+    // List root-level files (non-directories)
+    File rootf = SD.open("/");
+    if (rootf && rootf.isDirectory()) {
+        File file = rootf.openNextFile();
         while (file) {
-            if (!file.isDirectory()) {
-                listFile.println(String("/")+file.name());
-                fileCount++;
+            file.getName(nameBuf, sizeof(nameBuf));
+            if (!file.isDirectory()&&(String(nameBuf).indexOf("filelist")==-1)) {
+                writePath("/" + String(nameBuf));
+                Serial.println("Writing path: " + String(nameBuf));
             }
             file.close();
-            file = root.openNextFile();
+            file = rootf.openNextFile();
         }
-        root.close();
+        rootf.close();
     }
 
-    listFile.close();
-    Serial.printf("Generated filelist.txt with %d files\n", fileCount);
+    if (listFile) listFile.close();
+    Serial.printf("Generated %d file(s) across %d filelist chunk(s)\n", fileCount, fileIndex);
     return true;
 }

@@ -56,8 +56,8 @@ void taskBluetooth(void* params)
   while (true)
   {
       if(state == 0) {
-        if(wakeReady.get()) {
-          
+        if(true) {
+          writeFinishedSD.put(true);
           // Reset file transfer state variables
           offset = 0;
           requestedFile = "";
@@ -141,21 +141,24 @@ void taskBluetooth(void* params)
               
               // Generate the file list
               if (bluetoothFileManager.generateFileList()) {
-                // Now load the generated filelist.txt
-                if (bluetoothFileManager.loadFile("/filelist.txt")) {
-                  calculatedChecksum = bluetoothFileManager.getCurrentChecksum();
-                  Serial.print("File list generated: ");
-                  Serial.print(bluetoothFileManager.getFileData().length());
-                  Serial.println(" bytes");
-                  Serial.print("Calculated checksum: ");
-                  Serial.println(calculatedChecksum);
-                  state = 3;
-                  bluetoothSleepReady.put(false);
-                } else {
-                  Serial.println("Failed to load generated filelist.txt");
-                  statusChar.writeValue("GENERATION_FAILED");
-                  state = 5;
-                }
+                // // //count how many we made
+                // int count = 0;
+                // ExFile root = SD.open("/");
+                // if (root && root.isDirectory()) {
+                //     ExFile file = root.openNextFile();
+                //     while (file) {
+                //         if (!file.isDirectory()) {
+                //             String name = file.name();
+                //             if (name.indexOf("filelist")!=-1) {
+                //                 count++;
+                //             }
+                //         }
+                //         file.close();
+                //         file = root.openNextFile();
+                //     }
+                //     root.close();
+                // }
+                // statusChar.writeValue("FILELISTS_GENERATED: "+String(count));
               } else {
                 Serial.println("Failed to generate filelist.txt");
                 state = 5;

@@ -14,7 +14,6 @@
 #include "setup.h"
 #include "sharedData.h"
 #include "waterSenseLibs/sdData/sdData.h"
-
 /**
  * @brief The SD storage task
  * @details Creates relevant files on   the SD card and stores all data
@@ -24,8 +23,8 @@
 void taskSD(void* params)
 {
   SD_Data mySD(SD_CS);
-  File myFile;
-  File GNSS;
+  ExFile myFile;
+  ExFile GNSS;
 
   // Task Setup
   uint8_t state = 0;
@@ -119,7 +118,17 @@ void taskSD(void* params)
 
       // Write data to SD card
       String path = mySD.getDataFilePath();
-      myFile = SD.open(path, FILE_APPEND, false);
+
+      ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
+      if (checkFile && checkFile.size() >= 60 * 1024) {
+        checkFile.close();
+        myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get()); // This should update the internal path
+        path = mySD.getDataFilePath(); // Get the new path
+      } else if (checkFile) {
+          checkFile.close();
+      }
+
+      myFile = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
       mySD.writeData(myFile, myDist, myTime, myTemp, myHum, batteryVoltage, solarVoltage);
       mySD.sleep(myFile);
       // myFile.printf("%s, %d, %f, %f, %d\n", unixTime.get(), myDist, myTemp, myHum, myFix);
@@ -169,7 +178,17 @@ void taskSD(void* params)
       writeFinishedSD.put(false);
       
       String path = mySD.getGNSSFilePath();
-      GNSS = SD.open(path, FILE_APPEND, false);
+
+      ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
+      if (checkFile && checkFile.size() >= 60 * 1024) {
+        checkFile.close();
+        GNSS = mySD.createGNSSFile(); // This should update the internal path
+        path = mySD.getGNSSFilePath(); // Get the new path
+      } else if (checkFile) {
+          checkFile.close();
+      }
+
+      GNSS = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
       mySD.writeGNSSData(GNSS, myBuffer);
       mySD.sleep(GNSS);
 

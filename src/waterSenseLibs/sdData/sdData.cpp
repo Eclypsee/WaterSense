@@ -10,11 +10,10 @@
 
 #include <Arduino.h>
 #include "sharedData.h"
-#include "SD.h"
+#include <SdFat.h>
 #include <utility>
 #include "sdData.h"
-
-
+SdFat SD;
 /**
  * @brief A constructor for the SD_Data class
  * 
@@ -33,7 +32,7 @@ SD_Data :: SD_Data(gpio_num_t pin)
 
     // uint16_t longTimer = millis();
     uint16_t timer = millis();
-    while (!SD.begin(CS))
+    while (!SD.begin(SD_CS, SD_SCK_MHZ(10)))
     {
         // // Restart if more than 10 seconds
         // if ((millis() - longTimer) > 10000)
@@ -68,7 +67,7 @@ void SD_Data :: writeHeader()
     // Check if file exists and create one if not
     if (!SD.exists("/README.txt"))
     {
-        File read_me = SD.open("/README.txt", FILE_WRITE);
+        ExFile read_me = SD.open("/README.txt", O_RDWR | O_CREAT | O_TRUNC);
         if(!read_me) return;
 
         // Create header with title, timestamp, and column names
@@ -93,7 +92,7 @@ void SD_Data :: writeHeader()
  * @param time The current unix timestamp
  * @return The opened file
  */
-File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
+ExFile SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
 {
     String fileName = "/Data/";
 
@@ -116,14 +115,14 @@ File SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
         fileName += ".txt";
     }
 
-    File file = SD.open(fileName, FILE_WRITE, true);
+    ExFile file = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC);
     this->DataFilePath = fileName;
     assert(file);
     return file;
 }
 
 
-File SD_Data :: createGNSSFile() 
+ExFile SD_Data :: createGNSSFile() 
 
 { 
   // Create or open a file called "RXM_RAWX.ubx" on the SD card. 
@@ -145,7 +144,7 @@ File SD_Data :: createGNSSFile()
   
   this->GNSSFilePath = fileName;
 
-  File dataFile = SD.open(fileName, FILE_WRITE, true); 
+  ExFile dataFile = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC); 
 
   if (!dataFile) 
 
@@ -171,10 +170,10 @@ File SD_Data :: createGNSSFile()
 void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude)
 {
     //Open log file and write to it
-    File logFile = SD.open("/logFile.txt", FILE_WRITE);
+    ExFile logFile = SD.open("/logFile.txt", O_RDWR | O_CREAT | O_TRUNC);
     if(!logFile) return;
 
-    if (logFile.size() == 0) {
+    if (logFile.fileSize() == 0) {
         logFile.println("Wake Count, UNIX Time (GMT), Latitude (decimal degrees), Longitude (decimal degrees), Altitude (meters above MSL)");
     }
     logFile.printf("%u, %u, %0.5f, %0.5f, %0.2f\n", wakeCounter, unixTime, latitude, longitude, altitude);
@@ -192,7 +191,7 @@ void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude
  * @param solarVoltage Voltage of solar panel
  * @return sensorData An object containing all of the data
  */
-void SD_Data :: writeData(File &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
+void SD_Data :: writeData(ExFile &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
 {
     dataFile.print(unixTime);
     dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, temperature, humidity, batteryVoltage, solarVoltage);
@@ -204,7 +203,7 @@ void SD_Data :: writeData(File &dataFile, int32_t distance, uint32_t unixTime, f
  * @param data_file A reference to the data file to be written to
  * @param buffer A reference to the block of data to be written to the .ubx file
  */
-void SD_Data :: writeGNSSData(File &dataFile, uint8_t buffer[SIZE])
+void SD_Data :: writeGNSSData(ExFile &dataFile, uint8_t buffer[SIZE])
 {
     dataFile.write(buffer, SIZE);
 }
@@ -214,7 +213,7 @@ void SD_Data :: writeGNSSData(File &dataFile, uint8_t buffer[SIZE])
  * 
  * @param dataFile The file to close
  */
-void SD_Data :: sleep(File &dataFile)
+void SD_Data :: sleep(ExFile &dataFile)
 {
     dataFile.close();
 }

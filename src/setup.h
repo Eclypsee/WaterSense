@@ -24,7 +24,7 @@
  * @details Writes data to the SD card with minimal sleep time
  * 
  */
-#define STANDALONE
+//#define STANDALONE
 
 /**
  * @brief Define this constant to disable GNSS measurements (only used as clock)
