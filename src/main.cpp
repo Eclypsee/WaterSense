@@ -135,14 +135,14 @@ void setup()
     humidity.put(0);
   #endif
 
-  // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  // // Setup tasks
+  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  // //Setup tasks
   // #ifndef LEGACY
-  //   #ifdef NO_SURVEY
-  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-  //   #else
-  //     xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
-  //   #endif
+  //     #ifdef STANDALONE
+  //       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+  //     #else
+  //       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+  //     #endif
   // #endif
 
 

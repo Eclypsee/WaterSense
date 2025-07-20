@@ -50,15 +50,13 @@ void taskSD(void* params)
         }
 
 
-
-        #ifndef STANDALONE
-          writeFinishedSD.put(false);
-          myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
-          writeFinishedSD.put(true);
-        #endif
-        #ifndef NO_SURVEY
+        #ifdef STANDALONE
           writeFinishedSD.put(false);
           GNSS = mySD.createGNSSFile();
+          writeFinishedSD.put(true);
+        #else
+          writeFinishedSD.put(false);
+          myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
           writeFinishedSD.put(true);
         #endif
 
@@ -72,22 +70,20 @@ void taskSD(void* params)
     else if (state == 1)
     {
 
-      #ifndef NO_SURVEY
-      // If gnssDataFlag is tripped, go to state 5
-      if (gnssDataReady.get()) 
-      {
-        gnssDataReady.put(false);
-        state = 5;
-      }
-      #endif
-
-      #ifndef STANDALONE
-      // If data is available, untrip dataFlag go to state 2
-      if (dataReady.get())
-      {
-        dataReady.put(false);
-        state = 2;
-      }
+      #ifdef STANDALONE
+        // If gnssDataFlag is tripped, go to state 5
+        if (gnssDataReady.get()) 
+        {
+          gnssDataReady.put(false);
+          state = 5;
+        }
+      #else
+        // If data is available, untrip dataFlag go to state 2
+        if (dataReady.get())
+        {
+          dataReady.put(false);
+          state = 2;
+        }
       #endif
 
       // If sleepFlag is tripped, go to state 3

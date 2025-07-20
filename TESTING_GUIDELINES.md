@@ -141,7 +141,7 @@ These guidelines ensure WaterSense software is reliable and handles power issues
 
 #### 6.1 Mode Validation
 - [ ] **CONTINUOUS mode**: Lab testing with AC power
-- [ ] **NO_SURVEY mode**: Standard operation with GNSS timing
+- [ ] **STANDALONE mode**: Continuous surveying for 2 hours, sleep for 1 minute(to be changed)
 - [ ] **RADAR mode**: Verify radar sensor operation vs ultrasonic
 - [ ] **VARIABLE_DUTY mode**: Power-adaptive operation
 

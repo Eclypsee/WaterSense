@@ -72,15 +72,13 @@ WaterSense supports multiple operating modes for different deployment scenarios:
 | Mode | Description | Use Case | Conflicts |
 |------|-------------|----------|-----------|
 | **CONTINUOUS** | Always-on measurements, no sleep | Lab testing, continuous monitoring with AC power | None |
-| **STANDALONE** | GNSS-only mode (no sensors) | GPS tracking applications, minimal power | ❌ NO_SURVEY |
-| **NO_SURVEY** | GNSS for timing only, sensors active | Standard water monitoring with GPS sync | ❌ STANDALONE, LEGACY |
-| **LEGACY** | Compatible with v3 Adafruit GPS | Older hardware configurations | ❌ NO_SURVEY, STANDALONE |
+| **STANDALONE** | GNSS-only mode (no sensors) | GPS tracking applications, minimal power |
+| **LEGACY** | Compatible with v3 Adafruit GPS | Older hardware configurations | STANDALONE |
 | **RADAR** | Radar distance sensor instead of ultrasonic | Harsh environments, better accuracy | None |
 | **VARIABLE_DUTY** | Adaptive power management | Battery-powered deployments | None |
 
 **⚠️ Mode Conflicts:**
-- **STANDALONE** and **NO_SURVEY** cannot be enabled together
-- **LEGACY** cannot be enabled with **NO_SURVEY** or **STANDALONE**
+- **LEGACY** cannot be enabled with **STANDALONE**
 
 ### Timing Configuration
 - **Read Intervals:** High=5min, Mid=2min, Low=1min

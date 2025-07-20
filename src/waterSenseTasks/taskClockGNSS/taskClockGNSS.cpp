@@ -48,10 +48,10 @@ void taskClockGNSS(void* params)
       else
       {
         Serial.println("GPS Clock2 0 -> 1, Update GPS");
-        #ifdef NO_SURVEY
+        #ifdef STANDALONE
+          myGNSS.start(); 
+        #else 
           myGNSS.start_no_survey();
-        #else
-          myGNSS.start();
         #endif
         state = 1;
       }
@@ -79,21 +79,18 @@ void taskClockGNSS(void* params)
         state = 3;
       }
 
-      #ifndef STANDALONE
-      // If new data is available, go to state 2
-      else if (dataReady.get())
-      {
-        Serial.println("GPS Clock2 1 -> 2, dataFlag ready");
-        state = 2;
-      }
-      #endif
-
-      #ifndef NO_SURVEY
-      else if(!(gnssPowerSave.get()) && !(gnssDataReady.get())) {
-        vTaskPrioritySet(NULL, 4);
-        state = 7;
-      }
-
+      #ifdef STANDALONE
+        else if(!(gnssPowerSave.get()) && !(gnssDataReady.get())) {
+          vTaskPrioritySet(NULL, 4);
+          state = 7;
+        }
+      #else 
+        // If new data is available, go to state 2
+        else if (dataReady.get())
+        {
+          Serial.println("GPS Clock2 1 -> 2, dataFlag ready");
+          state = 2;
+        }
       #endif
 
     }
@@ -201,10 +198,10 @@ void taskClockGNSS(void* params)
     // Get fix
     else if (state == 4)
     {
-      #ifdef NO_SURVEY
-        myGNSS.start_no_survey();
-      #else
+      #ifdef STANDALONE
         myGNSS.start();
+      #else
+        myGNSS.start_no_survey();
       #endif
       Serial.printf("GPS Clock2 4 -> 1, GPS getting fix (blink) %u\n", myGNSS.gnss.getFixType());
 
