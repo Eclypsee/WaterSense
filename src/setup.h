@@ -48,6 +48,9 @@
 #define SDA 21 
 #define CLK 100000
 
+#define MAX_FILESIZE 50*1024 //max size a file can be in kb
+#define BT_TRANSF_SIZE 64*1024 //max size a file can be for bluetooth to transfer
+
 /**
  * @brief Define this constant to enable variable duty cycle
  * @details If undefined, HI_READ and HI_ALLIGN are used
@@ -72,7 +75,7 @@
 #define FIX_DELAY 60*2 ///< Seconds to wait for first GPS fix
 // #define FIX_DELAY 1 ///< Seconds to wait for first GPS fix
 
-#define WATCH_TIMER 15*1000 ///< ms of hang time before triggering a reset
+#define WATCH_TIMER 30*1000 ///< ms of hang time before triggering a reset
 
 #define MEASUREMENT_PERIOD 100 ///< Measurement task period in ms
 #define SD_PERIOD 10 ///< SD task period in ms

@@ -15,6 +15,9 @@
 #include "sharedData.h"
 #include "waterSenseLibs/gpsClock/gpsClock.h"
 #include "waterSenseLibs/zedGNSS/zedGNSS.h"
+#include <Wire.h>
+#include <RTClib.h>
+#include <ESP32Time.h>
 
 /**
  * @brief The clock task
@@ -29,15 +32,19 @@ void taskClockGNSS(void* params)
 
   GNSS myGNSS = GNSS(SDA, SCL, CLK);
 
-  ESP32Time myRTC(1);
-
   uint8_t state = 0;
+
+  RTC_DS3231 ada_rtc;
 
   while (true)
   {
     // Begin
     if (state == 0)
     {
+      Wire.begin();
+      while(!ada_rtc.begin(&Wire)){
+        Serial.println("Exernal RTC not found");
+      }
       Serial.println("GPS Clock2 Wakeup, begin enabling GNSS");
       if (wakeCounter == 0)
       {
@@ -67,7 +74,7 @@ void taskClockGNSS(void* params)
       }
       wakeReady.put(true);
       unixTime.put(myGNSS.gnss.getUnixEpoch());
-
+      ada_rtc.adjust(DateTime(myGNSS.gnss.getUnixEpoch()));
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
       {
@@ -101,8 +108,8 @@ void taskClockGNSS(void* params)
       // If we've switched to the internal clock, use it!
       if (internal)
       {
-        unixTime.put(myRTC.getLocalEpoch());
-        displayTime.put(myRTC.getTimeDate());
+        unixTime.put(ada_rtc.now().unixtime());
+        displayTime.put(String(ada_rtc.now().unixtime()));
       }
 
       // Otherwise, if the GPS has a fix, use it to set the time
@@ -212,7 +219,8 @@ void taskClockGNSS(void* params)
     else if (state == 5)
     {
       // Update internal clock
-      lastKnownUnix = myGNSS.gnss.getUnixEpoch();
+      //lastKnownUnix = myGNSS.gnss.getUnixEpoch();
+      lastKnownUnix = ada_rtc.now().unixtime();
 
       state = 6;
     }
@@ -220,8 +228,8 @@ void taskClockGNSS(void* params)
     // Read from RTC
     else if (state == 6)
     {
-      unixTime.put(myRTC.getEpoch());
-      displayTime.put(myRTC.getDateTime());
+      unixTime.put(ada_rtc.now().unixtime());
+      displayTime.put(String(ada_rtc.now().unixtime()));
 
       state = 1;
       

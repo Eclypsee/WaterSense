@@ -87,7 +87,8 @@ Share<float> battery("Battery Voltage"); ///< The input voltage to the MCU
 Share<uint32_t> READ_TIME("Read Time"); ///< The current read time in seconds
 Share<uint16_t> MINUTE_ALLIGN("Minute Allign"); ///< The current minute allignment
 
-
+//Bluetooth Shares
+Share<uint16_t> FILELIST_COUNT("Filelist Count"); //number of filelists generated STARTS FROM Filelist1.txt
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||
 
@@ -136,15 +137,15 @@ void setup()
   #endif
 
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  // //Setup tasks
-  // #ifndef LEGACY
-  //     #ifdef STANDALONE
-  //       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
-  //     #else
-  //       xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-  //     #endif
-  // #endif
-
+  Setup tasks
+  #ifndef LEGACY
+      #ifdef STANDALONE
+        xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
+      #else
+        xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
+      #endif
+  #endif
+wakeReady.put(true);
 
 
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
@@ -152,17 +153,17 @@ void setup()
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
-  // #ifdef LEGACY
-  //    xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
-  // #endif
+  #ifdef LEGACY
+     xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
+  #endif
   
-  // #ifndef STANDALONE
-  //   #ifdef RADAR
-  //     xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
-  //   #else
-  //     xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
-  //   #endif
-  // #endif
+  #ifndef STANDALONE
+    #ifdef RADAR
+      xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+    #else
+      xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
+    #endif
+  #endif
 }
 
 void loop()

@@ -116,7 +116,7 @@ void taskSD(void* params)
       String path = mySD.getDataFilePath();
 
       ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
-      if (checkFile && checkFile.size() >= 60 * 1024) {
+      if (checkFile && checkFile.size() >= MAX_FILESIZE) {
         checkFile.close();
         myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get()); // This should update the internal path
         path = mySD.getDataFilePath(); // Get the new path
@@ -176,7 +176,7 @@ void taskSD(void* params)
       String path = mySD.getGNSSFilePath();
 
       ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
-      if (checkFile && checkFile.size() >= 60 * 1024) {
+      if (checkFile && checkFile.size() >= MAX_FILESIZE) {
         checkFile.close();
         GNSS = mySD.createGNSSFile(); // This should update the internal path
         path = mySD.getGNSSFilePath(); // Get the new path

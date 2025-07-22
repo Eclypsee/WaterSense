@@ -9,5 +9,4 @@
  * 
  */
 
-
 void taskClockGNSS(void* params);

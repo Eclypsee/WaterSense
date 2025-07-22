@@ -99,7 +99,7 @@ void taskBluetooth(void* params)
         //tell watchdog I am alive
         bluetoothCheck.put(true);
         // Wait 9.9 seconds using vTaskDelay
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(9900));
         
         // Start advertising
         BLE.advertise();
@@ -141,26 +141,10 @@ void taskBluetooth(void* params)
               
               // Generate the file list
               if (bluetoothFileManager.generateFileList()) {
-                // // //count how many we made
-                // int count = 0;
-                // ExFile root = SD.open("/");
-                // if (root && root.isDirectory()) {
-                //     ExFile file = root.openNextFile();
-                //     while (file) {
-                //         if (!file.isDirectory()) {
-                //             String name = file.name();
-                //             if (name.indexOf("filelist")!=-1) {
-                //                 count++;
-                //             }
-                //         }
-                //         file.close();
-                //         file = root.openNextFile();
-                //     }
-                //     root.close();
-                // }
-                // statusChar.writeValue("FILELISTS_GENERATED: "+String(count));
+                statusChar.writeValue(String("FILELISTS_MADE ")+FILELIST_COUNT.get());
               } else {
                 Serial.println("Failed to generate filelist.txt");
+                statusChar.writeValue("FILELISTS_FAILED");
                 state = 5;
               }
             } else {
@@ -315,7 +299,7 @@ void taskBluetooth(void* params)
     BLE.poll();
     
     // Delay for better BLE responsiveness while reducing CPU usage
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(15));
     bluetoothCheck.put(true);
   }
 }

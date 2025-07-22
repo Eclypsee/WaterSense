@@ -36,11 +36,11 @@
                  Wire1.begin(SDA_radar, SCL_radar);       // SDA=32, SCL=33 (adjust pins if needed)
                  Wire1.setClock(CLK_radar);
  
-                 if (myRadar.begin(I2C_ADDR, Wire1) != ksfTkErrOk)
+                 if (myRadar.begin(I2C_ADDR, Wire1) != 1)
                  {
                      Serial.println("[RadarTask][ERROR] begin() failed! Suspending task.");
                  }
- 
+
                  int32_t err = myRadar.distanceSetup(RANGE_MIN, RANGE_MAX);
                  if (err != 0)
                  {
@@ -50,7 +50,7 @@
  
                  Serial.printf("[RadarTask] Range set: %umm%umm\n", RANGE_MIN, RANGE_MAX);
                  radarSleepReady.put(false);
-                // 1) cancel any tiny leakage echo near the start
+                // 1) cancel any tiny leakage echo near the start 
                  myRadar.setCloseRangeLeakageCancellation(true);
 
                  state = 1;

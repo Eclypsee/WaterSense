@@ -10,7 +10,7 @@
  */
 #define SDA_radar 32 
 #define SCL_radar 33 
-#define CLK_radar 400000
+#define CLK_radar 100000
  void taskRadar(void* params);
 
 

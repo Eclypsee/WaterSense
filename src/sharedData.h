@@ -77,6 +77,9 @@ extern Share<float> battery;
 extern Share<uint32_t> READ_TIME;
 extern Share<uint16_t> MINUTE_ALLIGN;
 
+//Bluetooth shares
+extern Share<uint16_t> FILELIST_COUNT;//number of filelists generated STARTS FROM Filelist1.txt
+
 #endif //SHARED_DATA_H
 
 //-----------------------------------------------------------------------------------------------------||
