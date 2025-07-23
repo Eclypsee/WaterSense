@@ -98,6 +98,9 @@ void taskBluetooth(void* params)
 
         //tell watchdog I am alive
         bluetoothCheck.put(true);
+        if(sleepFlag.get()){
+          state = 6;
+        }
         // Wait 9.9 seconds using vTaskDelay
         vTaskDelay(pdMS_TO_TICKS(9900));
         
@@ -292,6 +295,12 @@ void taskBluetooth(void* params)
         vTaskDelay(pdMS_TO_TICKS(1000)); // Wait a bit before returning to connected state
         state = 2;
         bluetoothSleepReady.put(false);
+      }
+
+      else if(state == 6) {//SLEEP
+        Serial.println("Bluetooth task sleeping");
+        bluetoothSleepReady.put(true);
+        vTaskDelay(pdMS_TO_TICKS(1000));
       }
     
     

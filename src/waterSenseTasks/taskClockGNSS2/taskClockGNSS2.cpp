@@ -38,7 +38,7 @@ void taskClockGNSS2(void* params)
         Serial.println("Exernal RTC not found");
         vTaskDelay(200);
       }
-      Serial.println("GPS Clock2 Wakeup, begin enabling GNSS");
+      Serial.println("GNSSv2 Wakeup, begin enabling GNSS");
       if (wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL)//check to see if 1 month passed
       {
         Serial.println("Initiating Monthly 20 hour survey");
@@ -81,7 +81,7 @@ void taskClockGNSS2(void* params)
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
       {
-        Serial.println("GPS Clock2 1 -> 3, sleepFlag ready");
+        Serial.println("GNSSv2 1 -> 3, sleepFlag ready");
         latitude.put(myGNSS.gnss.getHighResLatitude());
         longitude.put(myGNSS.gnss.getHighResLongitude());
         altitude.put(myGNSS.gnss.getAltitudeMSL() / (int32_t) 1000);
@@ -114,7 +114,7 @@ void taskClockGNSS2(void* params)
       // Calculate sleep time
       sleepTime.put((uint64_t) (READ_TIME.get() * 1000000));//after surveying for 20 hours, gnss task sleeps for a bit and wakes up as RTC task
 
-      Serial.println("GPS Clock2 3, GPS going to sleep");
+      Serial.println("GNSSv2 3, GPS going to sleep");
 
       myGNSS.gnss.end();
       vTaskDelay(500);
