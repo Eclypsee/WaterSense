@@ -15,7 +15,8 @@
 #include "sharedData.h"
 #include "waterSenseTasks/taskMeasure/taskMeasure.h"
 #include "waterSenseTasks/taskSD/taskSD.h"
-#include "waterSenseTasks/taskClockGNSS/taskClockGNSS.h"
+//#include "waterSenseTasks/taskClockGNSS/taskClockGNSS.h"
+#include "waterSenseTasks/taskClockGNSS2/taskClockGNSS2.h"
 #include "waterSenseTasks/taskClock2/taskClock2.h"
 #include "waterSenseTasks/taskSleep/taskSleep.h"
 #include "waterSenseTasks/taskVoltage/taskVoltage.h"
@@ -28,8 +29,9 @@
 
 // Non-volatile Variables
 RTC_DATA_ATTR uint32_t wakeCounter = 0; ///< A counter representing the number of wake cycles
-RTC_DATA_ATTR uint32_t lastKnownUnix = 0;
-RTC_DATA_ATTR uint32_t unixRtcStart = 0;
+RTC_DATA_ATTR uint32_t lastFixedUTX = 0;////< time since last gnss fix/time calibration
+//RTC_DATA_ATTR uint32_t lastKnownUnix = 0;
+//RTC_DATA_ATTR uint32_t unixRtcStart = 0;
 RTC_DATA_ATTR bool internal = false;
 
 // Watchdog Checks
@@ -55,6 +57,9 @@ Share<bool> gnssDataReady("GNSS buffer ready");
 Share<bool> fileCreated("SD files created");
 Share<bool> stopOperationSD("Stop SD Operations");///< A shared variable to STOP ALL SD operations
 Share<bool> writeFinishedSD("Write Finished");///< A shared variable to indicate SD has finished writing
+
+Share<int8_t> inLongSurvey("inLongSurvey");///< If we are in the Monthly Survey. -1 for non initialized, 0 for not in long sleep, 1 for in long sleep.
+
 
 // Shares from GPS Clock
 Share<int32_t> latitude("Latitude"); ///< The current latitude [Decimal degrees]
@@ -126,6 +131,8 @@ void setup()
   stopOperationSD.put(false);
   writeFinishedSD.put(false);
 
+  inLongSurvey.put(-1);
+
   Wire.setPins(SDA, SCL);
   Wire.begin();
   Wire.setClock((uint32_t) CLK);
@@ -137,33 +144,16 @@ void setup()
   #endif
 
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
-  Setup tasks
-  #ifndef LEGACY
-      #ifdef STANDALONE
-        xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 5, NULL);
-      #else
-        xTaskCreate(taskClockGNSS, "Clock Task", 8192, NULL, 7, NULL);
-      #endif
-  #endif
-wakeReady.put(true);
 
+  xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
 
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
-  #ifdef LEGACY
-     xTaskCreate(taskClock2, "Clock Task", 8192, NULL, 5, NULL);
-  #endif
-  
-  #ifndef STANDALONE
-    #ifdef RADAR
-      xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
-    #else
-      xTaskCreate(taskMeasure, "Measurement Task", 8192, NULL, 6, NULL);
-    #endif
-  #endif
+  xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+
 }
 
 void loop()

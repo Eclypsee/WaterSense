@@ -37,7 +37,7 @@ class SD_Data
         void writeHeader(void); ///< A method to check and format header files
 
         /// A method to open a new file
-        ExFile createFile(bool hasFix, uint32_t wakeCounter, uint32_t time);
+        ExFile createFile(uint32_t time);
 
         // A method to write raw satellite data to .ubx files
         ExFile createGNSSFile();
@@ -46,7 +46,7 @@ class SD_Data
         void writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude);
 
         /// A method to write data to the sd card
-        void writeData(ExFile &data_file, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage);
+        void writeData(ExFile &data_file, int32_t distance, uint32_t unixTime, float batteryVoltage, float solarVoltage);
 
         /// A method to write GNSS data to SD card
         void writeGNSSData(ExFile &dataFile, uint8_t buffer[SIZE]);

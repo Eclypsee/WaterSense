@@ -21,8 +21,9 @@
 
 // Non-Volatile Memory
 extern RTC_DATA_ATTR uint32_t wakeCounter; ///< A counter representing the number of wake cycles
-extern RTC_DATA_ATTR uint32_t lastKnownUnix;
-extern RTC_DATA_ATTR uint32_t unixRtcStart;
+extern RTC_DATA_ATTR uint32_t lastFixedUTX; 
+//extern RTC_DATA_ATTR uint32_t lastKnownUnix;
+//extern RTC_DATA_ATTR uint32_t unixRtcStart;
 extern RTC_DATA_ATTR bool internal;
 
 // Watchdog Checks
@@ -49,6 +50,9 @@ extern Share<bool> gnssDataReady;
 extern Share<bool> fileCreated;
 extern Share<bool> stopOperationSD;
 extern Share<bool> writeFinishedSD;
+
+
+extern Share<int8_t> inLongSurvey;
 
 // Shares from GNSS
 extern Share<int32_t> latitude;

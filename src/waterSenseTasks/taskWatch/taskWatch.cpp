@@ -57,12 +57,8 @@ void taskWatch(void* params)
       sd = sdCheck.get();
       voltage = voltageCheck.get();
       sleep = sleepCheck.get();
-      measure = measureCheck.get();
+      measure = radarCheck.get();
       bluetooth = bluetoothCheck.get();
-
-      #ifdef STANDALONE
-        measure = true;
-      #endif
 
       // If all tasks are good, reset the timer
       if (clock && sd && voltage && sleep && measure)

@@ -19,25 +19,6 @@
  */
 #define CONTINUOUS
 
-/**
- * @brief Define this constant to enable standalone GNSS measurements (no sonar or temp)
- * @details Writes data to the SD card with minimal sleep time
- * 
- */
-//#define STANDALONE
-
-/**
- * @brief Define this constant to enable v3 Adafruit Ultimate Breakout GPS (no sonar or temp)
- * @details enables taskClock2
- */
-//#define LEGACY
-
-/**
- * @brief Define this constant to enable Radar instead of Ultrasonic
- * @details enables taskRadar
- * 
- */
-#define RADAR
 
 /**
  * @brief Define the pins for the DEFAULT i2c bus
@@ -67,7 +48,7 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_READ_TIME 60 * 60 * 2
+#define GNSS_READ_TIME 60 * 60 * 20 //in seconds. right nowit is 72,000 or 20 hours awake
 
 #define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
 

@@ -92,28 +92,14 @@ void SD_Data :: writeHeader()
  * @param time The current unix timestamp
  * @return The opened file
  */
-ExFile SD_Data :: createFile(bool hasFix, uint32_t wakeCounter, uint32_t time)
+ExFile SD_Data :: createFile(uint32_t time)
 {
     String fileName = "/Data/";
 
     // Filenames are at most 8 characters + 6("/Data/") + 4(".txt") + null terminator = 19
-    if (hasFix) // If the gps has a fix, use its timestamp
-    {
-        fileName += String(time, HEX);
-        fileName += ".txt";
-    }
-    else if (lastKnownUnix) // If we have switched over to the RTC, use it
-    {
-        fileName += String(time, HEX);
-        fileName += ".txt";
-    }
-    else // If no GPS fix, use wake counter
-    {
-        fileName += String(wakeCounter, HEX);
-        fileName += "_";
-        fileName += String(millis(), HEX);
-        fileName += ".txt";
-    }
+
+    fileName += String(time, HEX);
+    fileName += ".txt";
 
     ExFile file = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC);
     this->DataFilePath = fileName;
@@ -191,10 +177,10 @@ void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude
  * @param solarVoltage Voltage of solar panel
  * @return sensorData An object containing all of the data
  */
-void SD_Data :: writeData(ExFile &dataFile, int32_t distance, uint32_t unixTime, float temperature, float humidity, float batteryVoltage, float solarVoltage)
+void SD_Data :: writeData(ExFile &dataFile, int32_t distance, uint32_t unixTime, float batteryVoltage, float solarVoltage)
 {
     dataFile.print(unixTime);
-    dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, temperature, humidity, batteryVoltage, solarVoltage);
+    dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, batteryVoltage, solarVoltage);
 }
 
 /**

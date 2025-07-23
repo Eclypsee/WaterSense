@@ -50,15 +50,14 @@ void taskSD(void* params)
         }
 
 
-        #ifdef STANDALONE
+        if(inLongSurvey.get()==1){
           writeFinishedSD.put(false);
           GNSS = mySD.createGNSSFile();
           writeFinishedSD.put(true);
-        #else
-          writeFinishedSD.put(false);
-          myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get());
-          writeFinishedSD.put(true);
-        #endif
+        }
+        writeFinishedSD.put(false);
+        myFile = mySD.createFile(unixTime.get());
+        writeFinishedSD.put(true);
 
         fileCreated.put(true);
 
@@ -69,23 +68,38 @@ void taskSD(void* params)
     // Check for data and populate buffer
     else if (state == 1)
     {
-
-      #ifdef STANDALONE
-        // If gnssDataFlag is tripped, go to state 5
+      if(inLongSurvey.get()==1){
         if (gnssDataReady.get()) 
-        {
+        {//store gnss data, move on
           gnssDataReady.put(false);
-          state = 5;
+          writeFinishedSD.put(false);
+      
+          String path = mySD.getGNSSFilePath();
+    
+          ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
+          if (checkFile && checkFile.size() >= MAX_FILESIZE) {
+            checkFile.close();
+            GNSS = mySD.createGNSSFile(); // This should update the internal path
+            path = mySD.getGNSSFilePath(); // Get the new path
+          } else if (checkFile) {
+              checkFile.close();
+          }
+    
+          GNSS = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
+          mySD.writeGNSSData(GNSS, myBuffer);
+          mySD.sleep(GNSS);
+    
+    
+          Serial.println("GNSS data written to SD card");
+    
+          writeFinishedSD.put(true);
+    
         }
-      #else
-        // If data is available, untrip dataFlag go to state 2
-        if (dataReady.get())
-        {
-          dataReady.put(false);
-          state = 2;
-        }
-      #endif
-
+      }
+      if(dataReady.get()){
+        dataReady.put(false);
+        state = 2;
+      }
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get() && !gnssDataReady.get())
       {
@@ -100,12 +114,6 @@ void taskSD(void* params)
       // Get sonar data
       int16_t myDist = distance.get();
 
-      // Get temp data
-      float myTemp = temperature.get();
-
-      // Get humidity data
-      float myHum = humidity.get();
-
       // Get voltages
       float solarVoltage = solar.get();
       float batteryVoltage = battery.get();
@@ -118,19 +126,18 @@ void taskSD(void* params)
       ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
       if (checkFile && checkFile.size() >= MAX_FILESIZE) {
         checkFile.close();
-        myFile = mySD.createFile(fixType.get(), wakeCounter, unixTime.get()); // This should update the internal path
+        myFile = mySD.createFile(unixTime.get()); // This should update the internal path
         path = mySD.getDataFilePath(); // Get the new path
       } else if (checkFile) {
           checkFile.close();
       }
 
       myFile = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
-      mySD.writeData(myFile, myDist, myTime, myTemp, myHum, batteryVoltage, solarVoltage);
+      mySD.writeData(myFile, myDist, myTime, batteryVoltage, solarVoltage);
       mySD.sleep(myFile);
-      // myFile.printf("%s, %d, %f, %f, %d\n", unixTime.get(), myDist, myTemp, myHum, myFix);
 
       // Print data to serial monitor
-      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, myTemp, myHum, batteryVoltage, solarVoltage);
+      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, batteryVoltage, solarVoltage);
       Serial.println(myTime);
 
       writeFinishedSD.put(true);
@@ -168,33 +175,6 @@ void taskSD(void* params)
       sdSleepReady.put(true);
     }
 
-    // Store GNSS data
-    else if(state == 5)
-    {
-      writeFinishedSD.put(false);
-      
-      String path = mySD.getGNSSFilePath();
-
-      ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
-      if (checkFile && checkFile.size() >= MAX_FILESIZE) {
-        checkFile.close();
-        GNSS = mySD.createGNSSFile(); // This should update the internal path
-        path = mySD.getGNSSFilePath(); // Get the new path
-      } else if (checkFile) {
-          checkFile.close();
-      }
-
-      GNSS = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
-      mySD.writeGNSSData(GNSS, myBuffer);
-      mySD.sleep(GNSS);
-
-
-      Serial.println("GNSS data written to SD card");
-
-      writeFinishedSD.put(true);
-
-      state = 1;
-    }
     else if(state == 6)//suspend sd operations(not sleep)
     {
       // Close data file
