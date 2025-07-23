@@ -122,6 +122,8 @@ void setup()
   gnssPowerSave.put(false);
   gnssMeasureDone.put(false);
   gnssDataReady.put(false);
+  dataReady.put(false);
+  sleepFlag.put(false);
   clockSleepReady.put(false);
   sdSleepReady.put(false);
   tempSleepReady.put(false);
@@ -152,7 +154,7 @@ void setup()
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
-  xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+  //xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
 
 }
 

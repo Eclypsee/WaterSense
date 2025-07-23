@@ -41,6 +41,7 @@ void taskSD(void* params)
     {
       if (wakeReady.get())
       {
+        Serial.println("state0SD");
         // Check/create header files
         if ((wakeCounter % 1000) == 0)
         {
@@ -68,8 +69,9 @@ void taskSD(void* params)
     // Check for data and populate buffer
     else if (state == 1)
     {
+      uint32_t gnssDataReadyValue = gnssDataReady.get();
       if(inLongSurvey.get()==1){
-        if (gnssDataReady.get()) 
+        if (gnssDataReadyValue) //hangs whyyyyyyy?
         {//store gnss data, move on
           gnssDataReady.put(false);
           writeFinishedSD.put(false);
@@ -101,7 +103,7 @@ void taskSD(void* params)
         state = 2;
       }
       // If sleepFlag is tripped, go to state 3
-      if (sleepFlag.get() && !gnssDataReady.get())
+      if (sleepFlag.get() && !gnssDataReadyValue)
       {
         state = 3;
       }

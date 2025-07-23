@@ -72,6 +72,7 @@ void taskClockGNSS2(void* params)
           fixType.put(myGNSS.gnss.getGnssFixOk());
           Serial.println("Cold Starting...");
           vTaskDelay(CLOCK_PERIOD);
+          clockCheck.put(true);
       }
       wakeReady.put(true);
       unixTime.put(myGNSS.gnss.getUnixEpoch());
@@ -81,14 +82,12 @@ void taskClockGNSS2(void* params)
       if (sleepFlag.get())
       {
         Serial.println("GPS Clock2 1 -> 3, sleepFlag ready");
-        gnssDataReady.put(true);
         latitude.put(myGNSS.gnss.getHighResLatitude());
         longitude.put(myGNSS.gnss.getHighResLongitude());
         altitude.put(myGNSS.gnss.getAltitudeMSL() / (int32_t) 1000);
         state = 3;
       }
       myGNSS.getGNSSData();//GET CURRENT GNSSDATA
-      gnssDataReady.put(true);
     }
 
     // Sleep

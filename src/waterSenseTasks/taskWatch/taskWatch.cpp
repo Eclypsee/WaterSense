@@ -59,9 +59,8 @@ void taskWatch(void* params)
       sleep = sleepCheck.get();
       measure = radarCheck.get();
       bluetooth = bluetoothCheck.get();
-
       // If all tasks are good, reset the timer
-      if (clock && sd && voltage && sleep && measure)
+      if (clock && sd && voltage && sleep && measure && bluetooth)
       {
           // Reset timer
           taskTimer = millis();
@@ -77,6 +76,13 @@ void taskWatch(void* params)
       // Otherwise, check the timer
       else if ((millis() - taskTimer) > WATCH_TIMER)
       {
+        Serial.printf("Status - Clock: %s | SD: %s | Voltage: %s | Sleep: %s | Measure: %s | Bluetooth: %s\n",
+          clock ? "true" : "false",
+          sd ? "true" : "false",
+          voltage ? "true" : "false",
+          sleep ? "true" : "false",
+          measure ? "true" : "false",
+          bluetooth ? "true" : "false");
           state = 2;
       }
     }

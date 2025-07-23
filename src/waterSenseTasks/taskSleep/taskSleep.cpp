@@ -56,7 +56,7 @@ void taskSleep(void* params)
     {
       // If runTimer, go to state 2
       uint32_t myReadTime = READ_TIME.get();
-      while(inLongSurvey.get()!=1&&inLongSurvey.get()!=0);
+      while(inLongSurvey.get()!=1&&inLongSurvey.get()!=0){vTaskDelay(10);};
       if(inLongSurvey.get()==1){
         myReadTime =  GNSS_READ_TIME;
       }
