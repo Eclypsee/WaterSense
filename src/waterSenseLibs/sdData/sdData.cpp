@@ -25,7 +25,7 @@ SD_Data :: SD_Data(gpio_num_t pin)
     // Update CS pin
     CS = pin;
 
-    pinMode(LED, OUTPUT);
+    //pinMode(LED, OUTPUT);
 
     // Start SD stuff
     pinMode(CS, OUTPUT);
@@ -40,15 +40,15 @@ SD_Data :: SD_Data(gpio_num_t pin)
         //     assert(false);
         // }
 
-        // Blink LED
-        Serial.println("SD not found, blinking LED");
-        if ((millis() - timer) > 300)
-        {
-            timer = millis();
-            digitalWrite(LED, 1-digitalRead(LED));
-        }
+        // // Blink LED
+        // Serial.println("SD not found, blinking LED");
+        // if ((millis() - timer) > 300)
+        // {
+        //     timer = millis();
+        //     digitalWrite(LED, 1-digitalRead(LED));
+        // }
     }
-    digitalWrite(LED, LOW);
+    //digitalWrite(LED, LOW);
 }
 
 String SD_Data :: getGNSSFilePath() {

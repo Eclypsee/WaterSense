@@ -145,13 +145,13 @@ void setup()
     humidity.put(0);
   #endif
 
-  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
 
-  xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
+  // xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
 
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
-  xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
+  //xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
   //xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
