@@ -55,7 +55,7 @@ void taskBluetooth(void* params)
   while (true)
   {
       if(state == 0) {
-        if(true) {
+        if(wakeReady.get()) {
           writeFinishedSD.put(true);
           // Reset file transfer state variables
           offset = 0;
@@ -100,8 +100,8 @@ void taskBluetooth(void* params)
           state = 6;
         }
         
-        vTaskDelay(pdMS_TO_TICKS(9900));
-        
+        vTaskDelay(pdMS_TO_TICKS(4800));
+
         // Start advertising
         BLE.advertise();
         Serial.println("Bluetooth advertising started");
@@ -122,7 +122,7 @@ void taskBluetooth(void* params)
         }
 
         // Stop advertising after 100ms
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(200));
         BLE.stopAdvertise();
         Serial.println("Bluetooth advertising stopped");
         bluetoothSleepReady.put(true);

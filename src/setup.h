@@ -95,34 +95,34 @@
 
 #define SD_CS GPIO_NUM_5 ///< SD card chip select pin
 
-#define SONAR_RX GPIO_NUM_14 ///< Sonar sensor receive pin
-#define SONAR_TX GPIO_NUM_32 ///< Sonar sensor transmit pin
+// #define SONAR_RX GPIO_NUM_14 ///< Sonar sensor receive pin
+// #define SONAR_TX GPIO_NUM_32 ///< Sonar sensor transmit pin
 
 /**
  * @brief Sonar sensor enable pin
  * @details Sonar measurements are disbale when this pin is pulled low
  * 
  */
-#define SONAR_EN GPIO_NUM_33
+// #define SONAR_EN GPIO_NUM_33
 
-#define GPS_RX GPIO_NUM_16 ///< GPS receive pin
-#define GPS_TX GPIO_NUM_17 ///< GPS transmit pin
+// #define GPS_RX GPIO_NUM_16 ///< GPS receive pin
+// #define GPS_TX GPIO_NUM_17 ///< GPS transmit pin
 
 /**
  * @brief GPS enable pin
  * @details GPS measurements are disabled when this pin is pulled low
  * 
  */
-#define GPS_EN GPIO_NUM_27
+// #define GPS_EN GPIO_NUM_27
 
-#define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
+// #define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
 
 /**
  * @brief Temperature/humidity sensor enable pin
  * @details Temperature and humidity measurements are disabled when this pin is pulled low
  * 
  */
-#define TEMP_EN GPIO_NUM_15
+// #define TEMP_EN GPIO_NUM_15
 
 #define ADC_PIN GPIO_NUM_26
 

@@ -144,7 +144,7 @@ void setup()
     temperature.put(0);
     humidity.put(0);
   #endif
-
+  wakeReady.put(true);
   // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
 
   // xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
