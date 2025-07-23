@@ -43,7 +43,6 @@ void taskBluetooth(void* params)
   uint32_t calculatedChecksum = 0;
   uint32_t receivedChecksum = 0;
   bool transferComplete = false;
-  bool connected = false;
   // Task Setup
   uint8_t state = 0;
   UBaseType_t originalPriority = uxTaskPriorityGet(NULL);
@@ -92,7 +91,6 @@ void taskBluetooth(void* params)
       }
 
       else if(state == 1) {//ADVERTISE
-        connected = false;
         //resume normal SD operations
         stopOperationSD.put(false);
 
@@ -102,6 +100,8 @@ void taskBluetooth(void* params)
           state = 6;
         }
         
+        vTaskDelay(pdMS_TO_TICKS(9900));
+        
         // Start advertising
         BLE.advertise();
         Serial.println("Bluetooth advertising started");
@@ -110,7 +110,6 @@ void taskBluetooth(void* params)
         if (central) {
           Serial.print("Connected to: ");
           Serial.println(central.address());
-          connected = true;
           state = 2;
           vTaskPrioritySet(NULL, 20); // Increase priority when connected
           bluetoothSleepReady.put(false); // Prevent sleep while connected
@@ -306,13 +305,7 @@ void taskBluetooth(void* params)
     // Handle BLE events more frequently for better responsiveness
     BLE.poll();
     
-    // Delay for better BLE responsiveness while reducing CPU usage
-    if(connected){
-      vTaskDelay(pdMS_TO_TICKS(9900));
-    }
-    else{
-      vTaskDelay(pdMS_TO_TICKS(15));
-    }
+    vTaskDelay(pdMS_TO_TICKS(15));
     bluetoothCheck.put(true);
   }
 }

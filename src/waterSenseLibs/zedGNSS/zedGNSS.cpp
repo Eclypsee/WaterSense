@@ -83,7 +83,7 @@ void GNSS :: start_no_survey() {
 
   unixTime.put(gnss.getUnixEpoch());
   fixType.put(gnss.getGnssFixOk());
-  wakeReady.put(gnss.getGnssFixOk());.
+  wakeReady.put(gnss.getGnssFixOk());
   Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
 }
 
