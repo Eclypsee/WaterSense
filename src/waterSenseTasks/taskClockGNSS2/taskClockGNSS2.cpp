@@ -108,8 +108,8 @@ void taskClockGNSS2(void* params)
         remainingBytes -= bytesToWrite; // Decrement remainingBytes 
       }
       ///////////////////////////////////////////////////////////////////////////////////////
-      myGNSS.setDisplayTime();
       unixTime.put(myGNSS.gnss.getUnixEpoch());
+      myGNSS.setDisplayTime();
 
       // Calculate sleep time
       sleepTime.put((uint64_t) (READ_TIME.get() * 1000000));//after surveying for 20 hours, gnss task sleeps for a bit and wakes up as RTC task
