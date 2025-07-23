@@ -41,7 +41,6 @@ void taskSD(void* params)
     {
       if (wakeReady.get())
       {
-        Serial.println("state0SD");
         // Check/create header files
         if ((wakeCounter % 1000) == 0)
         {
@@ -80,6 +79,7 @@ void taskSD(void* params)
     
           ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
           if (checkFile && checkFile.size() >= MAX_FILESIZE) {
+            Serial.println("GNSS file too large, creating new file");
             checkFile.close();
             GNSS = mySD.createGNSSFile(); // This should update the internal path
             path = mySD.getGNSSFilePath(); // Get the new path
@@ -90,7 +90,6 @@ void taskSD(void* params)
           GNSS = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
           mySD.writeGNSSData(GNSS, myBuffer);
           mySD.sleep(GNSS);
-    
     
           Serial.println("GNSS data written to SD card");
     

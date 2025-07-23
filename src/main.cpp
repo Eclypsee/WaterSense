@@ -13,7 +13,7 @@
 #include <Wire.h>
 #include "setup.h"
 #include "sharedData.h"
-#include "waterSenseTasks/taskMeasure/taskMeasure.h"
+// #include "waterSenseTasks/taskMeasure/taskMeasure.h"
 #include "waterSenseTasks/taskSD/taskSD.h"
 //#include "waterSenseTasks/taskClockGNSS/taskClockGNSS.h"
 #include "waterSenseTasks/taskClockGNSS2/taskClockGNSS2.h"

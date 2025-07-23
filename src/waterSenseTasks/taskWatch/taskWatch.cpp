@@ -70,7 +70,7 @@ void taskWatch(void* params)
           sdCheck.put(false);
           voltageCheck.put(false);
           sleepCheck.put(false);
-          measureCheck.put(false);
+          radarCheck.put(false);
           bluetoothCheck.put(false);
       }
       // Otherwise, check the timer

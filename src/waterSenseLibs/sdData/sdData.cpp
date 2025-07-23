@@ -41,6 +41,7 @@ SD_Data :: SD_Data(gpio_num_t pin)
         // }
 
         // Blink LED
+        Serial.println("SD not found, blinking LED");
         if ((millis() - timer) > 300)
         {
             timer = millis();
