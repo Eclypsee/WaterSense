@@ -1,9 +1,9 @@
 /**
  * @file setup.h
- * @author Alexander Dunn
+ * @author Evan Lee
  * @brief A file to contain all setup information
  * @version 0.1
- * @date 2023-02-05
+ * @date 2025 peak
  * 
  * @copyright Copyright (c) 2023
  * 
@@ -25,8 +25,10 @@
  * @details I know radar has its own separate scl_radar... ignore that. let it have its own bus
  * 
  */
-#define SCL 22 
-#define SDA 21 
+#define SCL 4 
+#define SDA 3 
+#define SCL2 12 
+#define SDA2 13 
 #define CLK 100000
 
 #define MAX_FILESIZE 50*1024 //max size a file can be in kb
@@ -91,40 +93,10 @@
 //-----------------------------------------------------------------------------------------------------||
 //---------- Define Pins ------------------------------------------------------------------------------||
 
-//#define LED GPIO_NUM_2
-
 #define SD_CS GPIO_NUM_5 ///< SD card chip select pin
+//miso mosi are default
 
-// #define SONAR_RX GPIO_NUM_14 ///< Sonar sensor receive pin
-// #define SONAR_TX GPIO_NUM_32 ///< Sonar sensor transmit pin
-
-/**
- * @brief Sonar sensor enable pin
- * @details Sonar measurements are disbale when this pin is pulled low
- * 
- */
-// #define SONAR_EN GPIO_NUM_33
-
-// #define GPS_RX GPIO_NUM_16 ///< GPS receive pin
-// #define GPS_TX GPIO_NUM_17 ///< GPS transmit pin
-
-/**
- * @brief GPS enable pin
- * @details GPS measurements are disabled when this pin is pulled low
- * 
- */
-// #define GPS_EN GPIO_NUM_27
-
-// #define TEMP_SENSOR_ADDRESS 0x44 ///< Temperature and humidity sensor hex address
-
-/**
- * @brief Temperature/humidity sensor enable pin
- * @details Temperature and humidity measurements are disabled when this pin is pulled low
- * 
- */
-// #define TEMP_EN GPIO_NUM_15
-
-#define ADC_PIN GPIO_NUM_26
+#define ADC_PIN GPIO_NUM_6
 
 //-----------------------------------------------------------------------------------------------------||
 //-----------------------------------------------------------------------------------------------------||

@@ -114,6 +114,7 @@ void setup()
   // setCpuFrequencyMhz(80);
   Serial.begin(115200);
 
+
   while (!Serial) {}
   Serial.println("\n\n\n\n");
 
@@ -135,26 +136,24 @@ void setup()
 
   inLongSurvey.put(-1);
 
-  Wire.setPins(SDA, SCL);
-  Wire.begin();
-  Wire.setClock((uint32_t) CLK);
-
+  Wire.begin(SDA, SCL, CLK);
+  Wire1.begin(SDA2, SCL2, CLK);
 
   #ifdef RADAR
     temperature.put(0);
     humidity.put(0);
   #endif
   wakeReady.put(true);
-  // xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
+  xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
 
-  // xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
+  xTaskCreate(taskClockGNSS2, "Clock Task", 8192, NULL, 7, NULL);
 
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
-  //xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
+  xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
   xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
 
-  //xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
+ // xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
 
 }
 

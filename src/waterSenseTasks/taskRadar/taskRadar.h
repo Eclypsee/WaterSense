@@ -8,9 +8,6 @@
  * @copyright Copyright (c) 2023
  * 
  */
-#define SDA_radar 32 
-#define SCL_radar 33 
-#define CLK_radar 100000
  void taskRadar(void* params);
 
 

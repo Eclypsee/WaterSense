@@ -85,25 +85,30 @@ void taskSleep(void* params)
     else if (state == 3)
     {
       // Get sleep time
-      uint64_t mySleep = sleepTime.get();
-      uint64_t myAllign = MINUTE_ALLIGN.get();
+      // uint64_t mySleep = sleepTime.get();
+      // uint64_t myAllign = MINUTE_ALLIGN.get();
       // mySleep /= 1000000;
       
       // Go to sleep    
       gpio_deep_sleep_hold_en();//sleep for calculated time
-      Serial.printf("Read time: %d minutes\nMinute Allign: %d\n", READ_TIME.get()/60, myAllign);
-      Serial.printf("%s: Going to sleep for ", displayTime.get());
-      Serial.print(mySleep/1000000);
-      Serial.printf(" seconds Time: %s\n", displayTime.get());
+      Serial.printf("Read time: %d minutes\nMinute Allign: %d\n", READ_TIME.get()/60, MINUTE_ALLIGN.get());
+      Serial.printf("Going to sleep for ");
+      Serial.print(sleepTime.get()/1000000);
+      Serial.println(" seconds");
+      // Serial.printf(" seconds Time: %s\n", displayTime.get());
 
-      if ((mySleep/1000000) > (myAllign*60))
+      if ((sleepTime.get()/1000000) > (MINUTE_ALLIGN.get()*60))
       {
-        esp_sleep_enable_timer_wakeup(myAllign*60*1000000);
+        Serial.println("Sleeping for sleep time A ");
+        Serial.println(MINUTE_ALLIGN.get()*60*1000000);
+        esp_sleep_enable_timer_wakeup(MINUTE_ALLIGN.get()*60*1000000);
       }
 
       else
       {
-        esp_sleep_enable_timer_wakeup(mySleep);
+        Serial.println("Sleeping for sleep time B ");
+        Serial.println(sleepTime.get());
+        esp_sleep_enable_timer_wakeup(sleepTime.get());
       }
       
       vTaskDelay(100);

@@ -33,7 +33,6 @@ void taskClockGNSS2(void* params)
     // Begin
     if (state == 0)
     {
-      Wire.begin();
       while(!ada_rtc.begin(&Wire)){
         Serial.println("Exernal RTC not found");
         vTaskDelay(200);
@@ -123,6 +122,11 @@ void taskClockGNSS2(void* params)
       vTaskDelay(1000);
 
       clockSleepReady.put(true);
+      state = 4;
+    }
+    if(state == 4) {
+      Serial.println("GNSSv2 4, sleeping ");
+      vTaskDelay(2000);
     }
     clockCheck.put(true);
     vTaskDelay(CLOCK_PERIOD);

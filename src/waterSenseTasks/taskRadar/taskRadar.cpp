@@ -33,10 +33,8 @@
              if (wakeReady.get())
              {
                  Serial.println("[RadarTask] Wake → init I2C + radar...");
-                 Wire1.begin(SDA_radar, SCL_radar);       // SDA=32, SCL=33 (adjust pins if needed)
-                 Wire1.setClock(CLK_radar);
  
-                 if (myRadar.begin(I2C_ADDR, Wire1) != 1)
+                 if (myRadar.begin(I2C_ADDR, Wire) != 1)
                  {
                      Serial.println("[RadarTask][ERROR] begin() failed! Suspending task.");
                  }
