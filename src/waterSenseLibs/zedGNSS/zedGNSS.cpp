@@ -17,8 +17,8 @@ GNSS :: GNSS(int sda, int scl, int clk) {
 }
 
 void GNSS :: start() {
-  gnss.factoryReset();
-  Serial.println("Factory reset");
+  // gnss.factoryReset();
+  // Serial.println("Factory reset");
   delay(1000);
     //gnss.enableDebugging();
     gnss.setFileBufferSize(fileBufferSize);

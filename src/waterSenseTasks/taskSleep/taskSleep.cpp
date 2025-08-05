@@ -58,7 +58,7 @@ void taskSleep(void* params)
       uint32_t myReadTime = READ_TIME.get();
       while(inLongSurvey.get()!=1&&inLongSurvey.get()!=0){vTaskDelay(10);};
       if(inLongSurvey.get()==1){
-        myReadTime =  GNSS_READ_TIME;
+        myReadTime =  20;
       }
       if (((millis() - runTimer) > myReadTime*1000))
       {
@@ -110,14 +110,6 @@ void taskSleep(void* params)
         Serial.println(sleepTime.get());
         esp_sleep_enable_timer_wakeup(sleepTime.get());
       }
-      
-      vTaskDelay(100);
-
-      Wire.end();
-      pinMode(SDA, INPUT);
-      pinMode(SCL, INPUT);
-      digitalWrite(SDA, LOW);
-      digitalWrite(SCL, LOW);
 
       delete[] myBuffer;
       //delete (GNSS*) globalGNSS;
@@ -125,8 +117,6 @@ void taskSleep(void* params)
       vTaskDelay(100);
 
       esp_deep_sleep_start();
-
-      state = 0;
     }
 
     sleepCheck.put(true);
