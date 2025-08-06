@@ -31,24 +31,18 @@ void GNSS :: start() {
     gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
     gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
     gnss.setNavigationFrequency(1); // Produce one navigation solution per second (that's plenty for Precise Point Positioning) 
-    Serial.println("Nav freq set");
     gnss.setAutoRXMSFRBXcallbackPtr(&newSFRBX); // Enable automatic RXM SFRBX messages with callback to newSFRBX 
     gnss.logRXMSFRBX(); // Enable RXM SFRBX data logging 
-    Serial.println("log RXM");
     gnss.setAutoRXMRAWXcallbackPtr(&newRAWX); // Enable automatic RXM RAWX messages with callback to newRAWX 
     gnss.logRXMRAWX(); // Enable RXM RAWX data logging 
     gnss.setHighPrecisionMode();
-    Serial.println("high precision mode");
     gnss.getTimeDOP();
     gnss.saveConfiguration();
-    Serial.println("Time DOP");
-    
-    Serial.println("Getting location fix...");
-    fixType.put(gnss.getGnssFixOk());
-    Serial.println("location fix valid: " + String(gnss.getGnssFixOk()));
+
+    bool locFix = gnss.getGnssFixOk();
     bool timeValid = gnss.getTimeValid();
     bool dateValid = gnss.getDateValid();
-    Serial.printf("Time valid: %d, Date valid: %d\n", timeValid, dateValid);
+    Serial.printf("loc valid: %hhu, time valid: %d, date valid: %d\n", locFix, timeValid, dateValid);
 
 
 
@@ -72,28 +66,29 @@ void GNSS :: start() {
     longitude.put(gnss.getLongitude());
     Serial.println("Got longitude");
 
-    wakeReady.put(gnss.getGnssFixOk()&&timeValid&&dateValid);
-    Serial.printf("GNSS successfully initialized. Fix Type: %hhu, time valid: %d, date valid: %d, Wake everyone?: %d\n", fixType.get(), timeValid, dateValid, wakeReady.get());
+    wakeReady.put(locFix&&timeValid&&dateValid);
+    fixType.put(locFix&&timeValid&&dateValid);
+    Serial.printf("GNSS successfully initialized. location valid: %hhu, time valid: %d, date valid: %d, Wake everyone?: %d\n", locFix, timeValid, dateValid, wakeReady.get());
 }
 
-void GNSS :: start_no_survey() {
-  while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
-  { 
-    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
-  }
+// void GNSS :: start_no_survey() {
+//   while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
+//   { 
+//     Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
+//   }
 
-  gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
-  gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
-  gnss.getTimeDOP();
-  gnss.saveConfiguration();
-  Serial.println("Time DOP");
+//   gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
+//   gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
+//   gnss.getTimeDOP();
+//   gnss.saveConfiguration();
+//   Serial.println("Time DOP");
   
 
-  unixTime.put(gnss.getUnixEpoch());
-  fixType.put(gnss.getGnssFixOk());
-  wakeReady.put(gnss.getGnssFixOk());
-  Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
-}
+//   unixTime.put(gnss.getUnixEpoch());
+//   fixType.put(gnss.getGnssFixOk());
+//   wakeReady.put(gnss.getGnssFixOk());
+//   Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
+// }
 
 void GNSS :: getGNSSData() {
         unixTime.put(gnss.getUnixEpoch());

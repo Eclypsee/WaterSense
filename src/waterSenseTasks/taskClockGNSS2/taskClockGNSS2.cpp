@@ -31,7 +31,7 @@ void taskClockGNSS2(void* params)
   while (true)
   {
     //radarSleepReady.put(true);radarCheck.put(true);//for testing WITHOUT radar
-    bluetoothSleepReady.put(true);bluetoothCheck.put(true);
+    bluetoothSleepReady.put(true);bluetoothCheck.put(true);//for testing without bluetooth
     // Begin
     if (state == 0)
     {
@@ -73,7 +73,6 @@ void taskClockGNSS2(void* params)
           myGNSS.gnss.factoryReset(); // Cold start - clears position data
           vTaskDelay(5000);
           myGNSS.start();
-          fixType.put(myGNSS.gnss.getGnssFixOk());
           Serial.println("Cold Starting...");
           //clockCheck.put(true);
       }
