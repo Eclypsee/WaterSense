@@ -43,6 +43,14 @@ void GNSS :: start() {
     gnss.saveConfiguration();
     Serial.println("Time DOP");
     
+    Serial.println("Getting location fix...");
+    fixType.put(gnss.getGnssFixOk());
+    Serial.println("location fix valid: " + String(gnss.getGnssFixOk()));
+    bool timeValid = gnss.getTimeValid();
+    bool dateValid = gnss.getDateValid();
+    Serial.printf("Time valid: %d, Date valid: %d\n", timeValid, dateValid);
+
+
 
     Serial.println("Getting Unix Epoch...");
     unixTime.put(gnss.getUnixEpoch());
@@ -64,11 +72,8 @@ void GNSS :: start() {
     longitude.put(gnss.getLongitude());
     Serial.println("Got longitude");
 
-    Serial.println("Getting fix type...");
-    fixType.put(gnss.getGnssFixOk());
-    Serial.println("Got fix type");
-    wakeReady.put(gnss.getGnssFixOk());
-    Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
+    wakeReady.put(gnss.getGnssFixOk()&&timeValid&&dateValid);
+    Serial.printf("GNSS successfully initialized. Fix Type: %hhu, time valid: %d, date valid: %d, Wake everyone?: %d\n", fixType.get(), timeValid, dateValid, wakeReady.get());
 }
 
 void GNSS :: start_no_survey() {

@@ -30,7 +30,8 @@ void taskClockGNSS2(void* params)
   RTC_DS3231 ada_rtc;
   while (true)
   {
-    //radarSleepReady.put(true);radarCheck.put(true);
+    //radarSleepReady.put(true);radarCheck.put(true);//for testing WITHOUT radar
+    bluetoothSleepReady.put(true);bluetoothCheck.put(true);
     // Begin
     if (state == 0)
     {
@@ -69,18 +70,18 @@ void taskClockGNSS2(void* params)
     else if (state == 2)
     {
       while(fixType.get() != true) {
+          myGNSS.gnss.factoryReset(); // Cold start - clears position data
+          vTaskDelay(5000);
           myGNSS.start();
-          vTaskDelay(CLOCK_PERIOD);
           fixType.put(myGNSS.gnss.getGnssFixOk());
           Serial.println("Cold Starting...");
-          vTaskDelay(CLOCK_PERIOD);
-          clockCheck.put(true);
+          //clockCheck.put(true);
       }
       unixTime.put(myGNSS.gnss.getUnixEpoch());
       myGNSS.setDisplayTime();
       Serial.println("GNSSv2 2, Unix Time: " + String(myGNSS.gnss.getUnixEpoch()));
       ada_rtc.adjust(DateTime(myGNSS.gnss.getUnixEpoch()));
-      vTaskDelay(1000);
+      vTaskDelay(500);
       wakeReady.put(true);//wake everyone up AFTER RTC and time are set.
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())

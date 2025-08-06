@@ -105,6 +105,7 @@ ExFile SD_Data :: createFile(uint32_t time)
     ExFile file = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC);
     this->DataFilePath = fileName;
     Serial.println("Asserting file SDTASK");
+    Serial.flush();
     assert(file);
     return file;
 }

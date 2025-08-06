@@ -21,8 +21,8 @@
 
 
 /**
- * @brief Define the pins for the DEFAULT i2c bus
- * @details I know radar has its own separate scl_radar... ignore that. let it have its own bus
+ * @brief Define the pins for the DEFAULT i2c buses
+ * @details 
  * 
  */
 #define SCL 4 
