@@ -69,6 +69,10 @@ void taskClockGNSS2(void* params)
     // Update
     else if (state == 2)
     {
+      bool locFix = myGNSS.gnss.getGnssFixOk();
+      bool timeValid = myGNSS.gnss.getTimeValid();
+      bool dateValid = myGNSS.gnss.getDateValid();
+      fixType.put(locFix&&timeValid&&dateValid);
       while(fixType.get() != true) {
           myGNSS.gnss.factoryReset(); // Cold start - clears position data
           vTaskDelay(5000);
