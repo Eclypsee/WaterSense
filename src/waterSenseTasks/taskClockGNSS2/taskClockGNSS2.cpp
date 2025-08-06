@@ -82,7 +82,7 @@ void taskClockGNSS2(void* params)
       Serial.println("GNSSv2 2, Unix Time: " + String(myGNSS.gnss.getUnixEpoch()));
       ada_rtc.adjust(DateTime(myGNSS.gnss.getUnixEpoch()));
       vTaskDelay(500);
-      wakeReady.put(true);//wake everyone up AFTER RTC and time are set.
+      // wakeReady.put(true);//have wakeready be set by zedgnss.cpp
       // If sleepFlag is tripped, go to state 3
       if (sleepFlag.get())
       {
