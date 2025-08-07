@@ -1,0 +1,42 @@
+XE125/XM125 how to setup on MacOS, M series
+
+default i2c addr SFE_XM125_I2C_ADDRESS = 0x52
+
+Overview
+
+https://docs.acconeer.com/en/latest/getting_started/evk_setup/xm125.html#xm125-hw-overview
+
+Download Exploration Server(account required)
+https://github.com/sparkfun/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/blob/main/docs/acconeer_python_exploration_tool.md
+
+https://docs.sparkfun.com/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/assets/component_documentation/XM125%20Software%20User%20Guide.pdf
+
+https://docs.sparkfun.com/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/flashing_firmware_xm125/
+
+^^^if you want i2c. Exlploration Server only does UART
+
+https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers?tab=downloads
+
+https://www.youtube.com/watch?v=Z8lQgxaJFOY
+
+https://docs.acconeer.com/en/latest/detectors/a121/distance_detector.html
+^^calibration
+
+python3 -m pip install --upgrade acconeer-exptool\[app]
+# RUN WITH  python3 -m acconeer.exptool.app
+
+brew install libusb
+
+pip3 install pyusb
+
+export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
+
+python3 -m acconeer.exptool.flash flash -d XM125 -i acc_exploration_server_a121.bin --port /dev/cu.SLAB_USBtoUART4
+# HOLD DOWN DFU BUTTON WHILE FLASHING, CLICK RESET AFTER. 
+# ALWYAS USE UART4 WHEN USING ACCONEER PYTHON APP ON MAC
+
+
+
+
+Library for functions with this XM
+https://docs.sparkfun.com/SparkFun_Qwiic_XM125_Arduino_Library/classsf_dev_x_m125_distance.html#a9ed7f49ce6fe8d5e02eb9529b0525705

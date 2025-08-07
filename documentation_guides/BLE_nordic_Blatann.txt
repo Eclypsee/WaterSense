@@ -1,0 +1,10 @@
+docs on use of blatann
+https://blatann.readthedocs.io/en/latest/
+
+nrf desktop
+https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-Desktop/Download
+
+follow blatann to flash the firmware to the dongle
+open nrf connect, select flash
+select the blatann firmware image and use the nrf flasher to flash the dongle
+now ur good to go
