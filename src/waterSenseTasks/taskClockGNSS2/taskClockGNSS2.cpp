@@ -40,15 +40,18 @@ void taskClockGNSS2(void* params)
         vTaskDelay(200);
       }
       Serial.println("GNSSv2 Wakeup, begin enabling GNSS");
-      if (wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL)//check to see if 1 month passed
+
+      bool gnssOn = false;
+      #ifdef GNSS_ON
+        gnssOn = true;
+      #endif
+      if ((wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL) && gnssOn)//check to see if 1 month passed AND GNSS is enabled
       {
-        #ifdef GNSS_ON
-          Serial.println("Initiating Monthly 20 hour survey");
-          myGNSS.start(); 
-          inLongSurvey.put(1);
-          vTaskDelay(CLOCK_PERIOD);
-          state = 2;
-        #endif
+        Serial.println("Initiating Monthly 20 hour survey");
+        myGNSS.start(); 
+        inLongSurvey.put(1);
+        vTaskDelay(CLOCK_PERIOD);
+        state = 2;
       }
       else
       {
