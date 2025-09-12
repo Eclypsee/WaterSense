@@ -11,6 +11,12 @@
 
 //-----------------------------------------------------------------------------------------------------||
 //---------- Define Constants -------------------------------------------------------------------------||
+/**
+ * @brief Define this constant to enable GNSS
+ * @details If undefined, GNSS will not be enabled
+ * 
+ */
+// #define GNSS_ON
 
 /**
  * @brief Define this constant to enable continuous measurements

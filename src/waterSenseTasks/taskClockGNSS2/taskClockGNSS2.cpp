@@ -42,12 +42,13 @@ void taskClockGNSS2(void* params)
       Serial.println("GNSSv2 Wakeup, begin enabling GNSS");
       if (wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL)//check to see if 1 month passed
       {
-        Serial.println("Initiating Monthly 20 hour survey");
-        lastFixedUTX = ada_rtc.now().unixtime();
-        myGNSS.start(); 
-        inLongSurvey.put(1);
-        vTaskDelay(CLOCK_PERIOD);
-        state = 2;
+        #ifdef GNSS_ON
+          Serial.println("Initiating Monthly 20 hour survey");
+          myGNSS.start(); 
+          inLongSurvey.put(1);
+          vTaskDelay(CLOCK_PERIOD);
+          state = 2;
+        #endif
       }
       else
       {
@@ -84,6 +85,7 @@ void taskClockGNSS2(void* params)
       myGNSS.setDisplayTime();
       Serial.println("GNSSv2 2, Unix Time: " + String(myGNSS.gnss.getUnixEpoch()));
       ada_rtc.adjust(DateTime(myGNSS.gnss.getUnixEpoch()));
+      lastFixedUTX = ada_rtc.now().unixtime();
       vTaskDelay(500);
       // wakeReady.put(true);//have wakeready be set by zedgnss.cpp
       // If sleepFlag is tripped, go to state 3

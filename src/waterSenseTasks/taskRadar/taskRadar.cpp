@@ -21,7 +21,7 @@
      SparkFunXM125Distance myRadar;
      const uint8_t  I2C_ADDR  = SFE_XM125_I2C_ADDRESS;
      const uint32_t RANGE_MIN = 1000;    // mm
-     const uint32_t RANGE_MAX = 5000;  // mm
+     const uint32_t RANGE_MAX = 13000;  // mm
  
      uint8_t state = 0;
      Serial.println("[RadarTask] Task started, awaiting wakeReady...");
