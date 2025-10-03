@@ -1,6 +1,6 @@
 /**
  * @file taskVoltage.cpp
- * @author Alexander Dunn
+ * @author Evan Lee
  * @brief Main file for the voltage measurement task
  * @version 0.1
  * @date 2023-02-05
@@ -13,8 +13,7 @@
 #include "taskVoltage.h"
 #include "setup.h"
 #include "sharedData.h"
-
-#include <driver/adc.h>
+#include "Adafruit_MAX1704X.h"
 
 
 /**
@@ -23,13 +22,20 @@
  * 
  * @param params A pointer to task parameters
  */
+//MAX17048_I2CADDR_DEFAULT 0x36 ///< MAX17048 default i2c address
 void taskVoltage(void* params)
 {
-  adc1_config_width(ADC_WIDTH_12Bit);
-  adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_0db); //set reference voltage to internal
-
   // Task Setup
   uint8_t state = 0;
+  Adafruit_MAX17048 maxlipo;
+  Serial.println(F("\nAdafruit MAX17048 simple demo"));
+  while (!maxlipo.begin(&Wire1)) {
+    Serial.println(F("Couldnt find Adafruit MAX17048?\nMake sure a battery is plugged in!"));
+    delay(1000);
+  }
+  Serial.print(F("Found MAX17048"));
+  Serial.print(F(" with Chip ID: 0x")); 
+  Serial.println(maxlipo.getChipID(), HEX);
 
   // Task Loop
   while (true)
@@ -37,43 +43,17 @@ void taskVoltage(void* params)
     // Measure voltage
     if (state == 0)
     {
-      // Measure voltage
-      float solarVoltage = 0.0;
-      float batteryVoltage = 0.0;
-      
-      for (uint8_t i = 0; i < 50; i++)
-      {
-        solarVoltage += analogRead(ADC_PIN)*(3.3/4095) * ((R1s + R2s)/ R2s);
-        batteryVoltage += adc1_get_raw(ADC1_CHANNEL_0)*(1.1/4095) * ((R1b + R2b)/ R2b);
+      float cellVoltage = maxlipo.cellVoltage();
+      if (isnan(cellVoltage)) {
+        Serial.println("Failed to read cell voltage, check battery is connected!");
+        delay(2000);
+        return;
       }
-
-      solarVoltage /= 50.0;
-      batteryVoltage /= 50.0;
-  
-      solar.put(solarVoltage);
-      battery.put(batteryVoltage);
-      
-      #ifdef VARIABLE_DUTY
-        if (batteryVoltage < 3.0)
-        {
-          READ_TIME.put(LOW_READ);
-          MINUTE_ALLIGN.put(LOW_ALLIGN);
-        }
-
-        else if (batteryVoltage < 3.2)
-        {
-          READ_TIME.put(MID_READ);
-          MINUTE_ALLIGN.put(MID_ALLIGN);
-          gnssPowerSave.put(false);
-        }
-
-        else
-        {
-          READ_TIME.put(HI_READ);
-          MINUTE_ALLIGN.put(HI_ALLIGN);
-          gnssPowerSave.put(false);
-        }
-      #endif
+      Serial.print(F("Batt Voltage: ")); Serial.print(cellVoltage, 3); Serial.println(" V");
+      Serial.print(F("Batt Percent: ")); Serial.print(maxlipo.cellPercent(), 1); Serial.println(" %");
+      Serial.println();
+      battery.put(cellVoltage);
+      batteryPercent.put(maxlipo.cellPercent());
     }
     
     voltageCheck.put(true);

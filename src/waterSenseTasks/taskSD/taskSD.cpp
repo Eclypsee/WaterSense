@@ -116,7 +116,7 @@ void taskSD(void* params)
       int16_t myDist = distance.get();
 
       // Get voltages
-      float solarVoltage = solar.get();
+      float batteryP = batteryPercent.get();
       float batteryVoltage = battery.get();
 
       uint32_t myTime = unixTime.get();
@@ -134,11 +134,11 @@ void taskSD(void* params)
       }
 
       myFile = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
-      mySD.writeData(myFile, myDist, myTime, batteryVoltage, solarVoltage);
+      mySD.writeData(myFile, myDist, myTime, batteryVoltage, batteryP);
       mySD.sleep(myFile);
 
       // Print data to serial monitor
-      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, batteryVoltage, solarVoltage);
+      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, batteryVoltage, batteryP);
       Serial.println(myTime);
 
       writeFinishedSD.put(true);

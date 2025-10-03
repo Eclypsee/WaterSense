@@ -22,6 +22,7 @@
 // Non-Volatile Memory
 extern RTC_DATA_ATTR uint32_t wakeCounter; ///< A counter representing the number of wake cycles
 extern RTC_DATA_ATTR uint32_t lastFixedUTX; 
+extern RTC_DATA_ATTR float prevBatteryPercent; 
 //extern RTC_DATA_ATTR uint32_t lastKnownUnix;
 //extern RTC_DATA_ATTR uint32_t unixRtcStart;
 extern RTC_DATA_ATTR bool internal;
@@ -76,7 +77,7 @@ extern Share<int> numRAWX;
 extern uint8_t *myBuffer;
 
 // Duty Cycle
-extern Share<float> solar;
+extern Share<float> batteryPercent;
 extern Share<float> battery;
 extern Share<uint32_t> READ_TIME;
 extern Share<uint16_t> MINUTE_ALLIGN;

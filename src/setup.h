@@ -16,7 +16,7 @@
  * @details If undefined, GNSS will not be enabled
  * 
  */
-// #define GNSS_ON
+ #define GNSS_ON
 
 /**
  * @brief Define this constant to enable continuous measurements
@@ -56,7 +56,7 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_READ_TIME 60 * 60 * 20 //in seconds. right nowit is 72,000 or 20 hours awake
+#define GNSS_READ_TIME 60 * 60 * 8 //in seconds
 
 #define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
 
@@ -73,6 +73,8 @@
 #define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
 #define WATCHDOG_PERIOD 100 ///< Watchdog task period in ms
 #define RADAR_TASK_PERIOD 100
+#define BLE_ADVERT_PERIOD 4800 
+#define BLE_POLLING_FREQ 20
 
 // #define R1b 9.54 ///< Larger resistor for battery voltage divider
 // #define R2b 2.96 ///< Smaller resistor for battery voltage divider

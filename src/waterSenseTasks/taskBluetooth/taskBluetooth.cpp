@@ -36,7 +36,7 @@ void taskBluetooth(void* params)
   BLECharacteristic fileChunkChar("12345678-1234-5678-1234-56789abcdef3", BLENotify, 110);
   BLEStringCharacteristic checksumChar("12345678-1234-5678-1234-56789abcdef4", BLERead | BLEWrite, 50);
   BLEStringCharacteristic statusChar("12345678-1234-5678-1234-56789abcdef5", BLENotify, 50);
-
+  BLEStringCharacteristic bPercentchar("12345678-1234-5678-1234-56789abcdef6", BLENotify, 50);//battery percentage
   // File transfer variables
   String requestedFile = "";
   int offset = 0;
@@ -100,7 +100,7 @@ void taskBluetooth(void* params)
           state = 6;
         }
         
-        vTaskDelay(pdMS_TO_TICKS(4800));
+        vTaskDelay(pdMS_TO_TICKS(BLE_ADVERT_PERIOD));//change this to set how long the gap between advertising is
 
         // Start advertising
         BLE.advertise();
@@ -130,6 +130,9 @@ void taskBluetooth(void* params)
 
       else if(state == 2) {//CONNECTED
         if (BLE.connected()) {
+          char bufferp[20];
+          sprintf(bufferp, "%.2f", batteryPercent.get());  
+          bPercentchar.writeValue(bufferp);//send battery percent level
           // Check for file request
           if (fileRequestChar.written()) {
             requestedFile = fileRequestChar.value();
@@ -305,7 +308,7 @@ void taskBluetooth(void* params)
     // Handle BLE events more frequently for better responsiveness
     BLE.poll();
     
-    vTaskDelay(pdMS_TO_TICKS(15));
+    vTaskDelay(pdMS_TO_TICKS(BLE_POLLING_FREQ));
     bluetoothCheck.put(true);
   }
 }

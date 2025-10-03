@@ -47,7 +47,7 @@ void taskClockGNSS2(void* params)
       #endif
       if ((wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL) && gnssOn)//check to see if 1 month passed AND GNSS is enabled
       {
-        Serial.println("Initiating Monthly 20 hour survey");
+        Serial.println("Initiating Monthly long hour survey");
         myGNSS.start(); 
         inLongSurvey.put(1);
         vTaskDelay(CLOCK_PERIOD);

@@ -30,6 +30,7 @@
 // Non-volatile Variables
 RTC_DATA_ATTR uint32_t wakeCounter = 0; ///< A counter representing the number of wake cycles
 RTC_DATA_ATTR uint32_t lastFixedUTX = 0;////< time since last gnss fix/time calibration
+RTC_DATA_ATTR float prevBatteryPercent = 0;////< self explanatory
 //RTC_DATA_ATTR uint32_t lastKnownUnix = 0;
 //RTC_DATA_ATTR uint32_t unixRtcStart = 0;
 RTC_DATA_ATTR bool internal = false;
@@ -87,7 +88,7 @@ Share<int> numRAWX("Number of RAWX msgs"); ///<RAWX msgs received by GNSS module
 uint8_t *myBuffer = new uint8_t[sdWriteSize]; /// <Buffer to copy to SD card
 
 // Duty Cycle
-Share<float> solar("Solar Voltage"); ///< The solar panel voltage
+Share<float> batteryPercent("Battery Percent"); ///< The solar panel voltage
 Share<float> battery("Battery Voltage"); ///< The input voltage to the MCU
 Share<uint32_t> READ_TIME("Read Time"); ///< The current read time in seconds
 Share<uint16_t> MINUTE_ALLIGN("Minute Allign"); ///< The current minute allignment
