@@ -56,7 +56,7 @@
 #define LOW_ALLIGN 60 //||
 //----------------------||
 
-#define GNSS_READ_TIME 60 * 60 * 8 //in seconds
+#define GNSS_READ_TIME 60 * 60 * 8 //in seconds. right now its 8 hours
 
 #define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
 

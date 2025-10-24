@@ -54,7 +54,7 @@
                  state = 1;
              }
          }
-         else if (state == 1)  // ── Decide: sleep or measure ──
+         else if (state == 1 && !BluetoothConnected.get())  // ── Decide: sleep or measure ──
          {
              if (sleepFlag.get())
              {

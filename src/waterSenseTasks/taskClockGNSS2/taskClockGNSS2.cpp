@@ -31,7 +31,9 @@ void taskClockGNSS2(void* params)
   while (true)
   {
     //radarSleepReady.put(true);radarCheck.put(true);//for testing WITHOUT radar
+    #ifndef BLE_on
     bluetoothSleepReady.put(true);bluetoothCheck.put(true);//for testing without bluetooth
+    #endif
     // Begin
     if (state == 0)
     {
@@ -45,7 +47,13 @@ void taskClockGNSS2(void* params)
       #ifdef GNSS_ON
         gnssOn = true;
       #endif
-      if ((wakeCounter == 0||(ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL) && gnssOn)//check to see if 1 month passed AND GNSS is enabled
+
+      long localSolarTime = unixTime.get() + utc_offset;
+      Serial.println("GNSSv2 calculated local solar time");
+      float localHour = fmod((localSolarTime % 86400L) / 3600.0, 24.0);
+      Serial.println("GNSSv2 calculated local hour");
+
+      if (!BluetoothConnected.get() && gnssOn && (wakeCounter == 0 || ((ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL && ((localHour >= 6.0 && localHour <= 10.0)))))//check to see if 1 month passed AND GNSS is enabled and its day and BLE disconnected
       {
         Serial.println("Initiating Monthly long hour survey");
         myGNSS.start(); 
@@ -71,7 +79,7 @@ void taskClockGNSS2(void* params)
       sleepTime.put((uint64_t) (READ_TIME.get() * 1000000));
     }
     // Update
-    else if (state == 2)
+    else if (state == 2 && !BluetoothConnected.get())
     {
       bool locFix = myGNSS.gnss.getGnssFixOk();
       bool timeValid = myGNSS.gnss.getTimeValid();
@@ -101,6 +109,9 @@ void taskClockGNSS2(void* params)
         state = 3;
       }
       myGNSS.getGNSSData();//GET CURRENT GNSSDATA
+      if(utc_offset=0){
+        utc_offset =  3600.0*myGNSS.gnss.getLongitude()/15;
+      }
     }
 
     // Sleep

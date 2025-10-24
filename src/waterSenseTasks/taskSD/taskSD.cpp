@@ -1,6 +1,6 @@
 /**
  * @file taskSD.cpp
- * @author Alexander Dunn
+ * @author Alexander Dunn, Evan Lee
  * @brief Main file for the SD task
  * @version 0.1
  * @date 2023-02-05
@@ -32,7 +32,7 @@ void taskSD(void* params)
   // Task Loop
   while (true)
   {
-    if(writeFinishedSD.get() && stopOperationSD.get()){
+    if(writeFinishedSD.get() && BluetoothConnected.get()){
       state = 6;//SUSPEND SD OPERATIONS
       continue;
     }
@@ -182,7 +182,7 @@ void taskSD(void* params)
       mySD.sleep(myFile);
       mySD.sleep(GNSS);
       sdSleepReady.put(true);
-      if(stopOperationSD.get() == false){
+      if(BluetoothConnected.get() == false){
         state = 1;
       }
     }

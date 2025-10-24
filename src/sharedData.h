@@ -26,6 +26,8 @@ extern RTC_DATA_ATTR float prevBatteryPercent;
 //extern RTC_DATA_ATTR uint32_t lastKnownUnix;
 //extern RTC_DATA_ATTR uint32_t unixRtcStart;
 extern RTC_DATA_ATTR bool internal;
+extern RTC_DATA_ATTR int8_t utc_offset;
+
 
 // Watchdog Checks
 extern Share<bool> clockCheck;
@@ -50,6 +52,7 @@ extern Share<bool> gnssPowerSave;
 extern Share<bool> gnssDataReady;
 extern Share<bool> fileCreated;
 extern Share<bool> stopOperationSD;
+extern Share<bool> BluetoothConnected;
 extern Share<bool> writeFinishedSD;
 
 

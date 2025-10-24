@@ -35,6 +35,8 @@ RTC_DATA_ATTR float prevBatteryPercent = 0;////< self explanatory
 //RTC_DATA_ATTR uint32_t unixRtcStart = 0;
 RTC_DATA_ATTR bool internal = false;
 
+RTC_DATA_ATTR int8_t utc_offset = 0;//utc offset in second
+
 // Watchdog Checks
 Share<bool> clockCheck("Clock Working");
 Share<bool> sleepCheck("Sleep Working");
@@ -56,7 +58,8 @@ Share<bool> gnssPowerSave("GNSS Power Save");
 Share<bool> gnssMeasureDone("GNSS Positioning Measurment Done");
 Share<bool> gnssDataReady("GNSS buffer ready");
 Share<bool> fileCreated("SD files created");
-Share<bool> stopOperationSD("Stop SD Operations");///< A shared variable to STOP ALL SD operations
+//Share<bool> stopOperationSD("Stop SD Operations");///< A shared variable to STOP ALL SD operations
+Share<bool> BluetoothConnected("bluetooth is connected");///< A shared variable to convey ble is connected and stop operations.
 Share<bool> writeFinishedSD("Write Finished");///< A shared variable to indicate SD has finished writing
 
 Share<int8_t> inLongSurvey("inLongSurvey");///< If we are in the Monthly Survey. -1 for non initialized, 0 for not in long sleep, 1 for in long sleep.
@@ -132,18 +135,16 @@ void setup()
   sonarSleepReady.put(false);
   bluetoothSleepReady.put(false);
   fileCreated.put(false);
-  stopOperationSD.put(false);
+  BluetoothConnected.put(false);
   writeFinishedSD.put(false);
+
+  unixTime.put(0);
 
   inLongSurvey.put(-1);
 
   Wire.begin(SDA, SCL, CLK);
   Wire1.begin(SDA2, SCL2, CLK);
 
-  // #ifdef RADAR
-  //   temperature.put(0);
-  //   humidity.put(0);
-  // #endif
   wakeReady.put(false);
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);
 
@@ -151,10 +152,12 @@ void setup()
 
   xTaskCreate(taskSleep, "Sleep Task", 8192, NULL, 1, NULL);
   xTaskCreate(taskVoltage, "Voltage Task", 8192, NULL, 1, NULL);
-  bluetoothSleepReady.put(true);
 
   xTaskCreate(taskWatch, "Watchdog Task", 8192, NULL, 10, NULL);
- // xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
+
+  #ifdef BLE_on
+    xTaskCreate(taskBluetooth, "Bluetooth Task", 8192, NULL, 4, NULL);
+  #endif
 
   xTaskCreate(taskRadar, "Radar Task", 8192, NULL, 6, NULL);
 

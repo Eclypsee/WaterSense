@@ -29,7 +29,7 @@ void taskVoltage(void* params)
   uint8_t state = 0;
   Adafruit_MAX17048 maxlipo;
   Serial.println(F("\nAdafruit MAX17048 simple demo"));
-  while (!maxlipo.begin(&Wire1)) {
+  while (!maxlipo.begin(&Wire)) {
     Serial.println(F("Couldnt find Adafruit MAX17048?\nMake sure a battery is plugged in!"));
     delay(1000);
   }

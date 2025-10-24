@@ -92,7 +92,7 @@ void taskBluetooth(void* params)
 
       else if(state == 1) {//ADVERTISE
         //resume normal SD operations
-        stopOperationSD.put(false);
+        BluetoothConnected.put(false);
 
         //tell watchdog I am alive
         bluetoothCheck.put(true);
@@ -113,7 +113,7 @@ void taskBluetooth(void* params)
           state = 2;
           vTaskPrioritySet(NULL, 20); // Increase priority when connected
           bluetoothSleepReady.put(false); // Prevent sleep while connected
-          stopOperationSD.put(true);//stop SD operation after writes finished
+          BluetoothConnected.put(true);//stop SD operation after writes finished
           while(writeFinishedSD.get()!=true){
             vTaskDelay(pdMS_TO_TICKS(20));
             bluetoothCheck.put(true);
