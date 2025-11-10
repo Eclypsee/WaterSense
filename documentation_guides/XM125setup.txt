@@ -1,4 +1,24 @@
-XE125/XM125 how to setup on MacOS, M series
+1.  Download Exploration Server(account required)
+    https://github.com/sparkfun/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/blob/main/docs/acconeer_python_exploration_tool.md
+	a. make sure to download exploration server.bin from acconeer
+2.  python3 -m pip install --upgrade acconeer-exptool\[app]
+3.  https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers?tab=downloads
+	a.  make sure its the windows drive with serial Enum
+4.  plug in xm125
+5.  open task manager and look for Ports(COM&LPT)
+6.  select the Silicon Labs Enhanced port
+7.  python3 acconeer.exptool.app
+8.  put xm125 in flash mode(hold dfu, tap reset, release dfu)
+9.  select Silicon Labs Enhanced port and flash
+10. reset xm125 by tapping reset
+11. flash different firmware bin files(ie i2c distance detector) https://docs.sparkfun.com/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/flashing_firmware_xm125/
+
+
+
+
+
+
+XE125/XM125 how to setup on MacOS, M series--------------
 
 default i2c addr SFE_XM125_I2C_ADDRESS = 0x52
 

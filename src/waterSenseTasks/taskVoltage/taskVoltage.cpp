@@ -28,20 +28,24 @@ void taskVoltage(void* params)
   // Task Setup
   uint8_t state = 0;
   Adafruit_MAX17048 maxlipo;
-  Serial.println(F("\nAdafruit MAX17048 simple demo"));
-  while (!maxlipo.begin(&Wire)) {
-    Serial.println(F("Couldnt find Adafruit MAX17048?\nMake sure a battery is plugged in!"));
-    delay(1000);
-  }
-  Serial.print(F("Found MAX17048"));
-  Serial.print(F(" with Chip ID: 0x")); 
-  Serial.println(maxlipo.getChipID(), HEX);
-
   // Task Loop
   while (true)
   {
     // Measure voltage
-    if (state == 0)
+    if(state==0){
+      if(wakeReady.get()){
+        Serial.println(F("\nAdafruit MAX17048 simple demo"));
+        while (!maxlipo.begin(&Wire)) {
+          Serial.println(F("Couldnt find Adafruit MAX17048?\nMake sure a battery is plugged in!"));
+          delay(1000);
+        }
+        Serial.print(F("Found MAX17048"));
+        Serial.print(F(" with Chip ID: 0x")); 
+        Serial.println(maxlipo.getChipID(), HEX);
+        state = 1;
+      }
+    }
+    if (state == 1)
     {
       float cellVoltage = maxlipo.cellVoltage();
       if (isnan(cellVoltage)) {
