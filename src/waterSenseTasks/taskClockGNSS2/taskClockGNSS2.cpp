@@ -86,8 +86,8 @@ void taskClockGNSS2(void* params)
       bool dateValid = myGNSS.gnss.getDateValid();
       fixType.put(locFix&&timeValid&&dateValid);
       while(fixType.get() != true) {
-          myGNSS.gnss.factoryReset(); // Cold start - clears position data
-          vTaskDelay(5000);
+          //myGNSS.gnss.factoryReset(); // Cold start - clears position data
+          vTaskDelay(10000);
           myGNSS.start();
           Serial.println("Cold Starting...");
           //clockCheck.put(true);
