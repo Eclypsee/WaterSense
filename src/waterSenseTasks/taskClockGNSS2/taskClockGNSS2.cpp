@@ -32,7 +32,8 @@ void taskClockGNSS2(void* params)
   {
     //radarSleepReady.put(true);radarCheck.put(true);//for testing WITHOUT radar
     #ifndef BLE_on
-    bluetoothSleepReady.put(true);bluetoothCheck.put(true);//for testing without bluetooth
+      bluetoothSleepReady.put(true);
+      bluetoothCheck.put(true);//for testing without bluetooth
     #endif
     // Begin
     if (state == 0)
@@ -81,16 +82,13 @@ void taskClockGNSS2(void* params)
     // Update
     else if (state == 2 && !BluetoothConnected.get())
     {
-      bool locFix = myGNSS.gnss.getGnssFixOk();
-      bool timeValid = myGNSS.gnss.getTimeValid();
-      bool dateValid = myGNSS.gnss.getDateValid();
-      fixType.put(locFix&&timeValid&&dateValid);
-      while(fixType.get() != true) {
+      vTaskDelay(5000);
+      while(fixType.get() != 1) {
           //myGNSS.gnss.factoryReset(); // Cold start - clears position data
-          vTaskDelay(10000);
+          Serial.println("Cold Starting... ");
           myGNSS.start();
-          Serial.println("Cold Starting...");
-          //clockCheck.put(true);
+          clockCheck.put(true);
+          vTaskDelay(5000);
       }
       unixTime.put(myGNSS.gnss.getUnixEpoch());
       myGNSS.setDisplayTime();

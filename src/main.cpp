@@ -121,6 +121,7 @@ void setup()
 
   while (!Serial) {}
   Serial.println("\n\n\n\n");
+  Serial.println("serial began");
 
   READ_TIME.put((uint32_t) HI_READ);
   MINUTE_ALLIGN.put((uint16_t) HI_ALLIGN);

@@ -60,7 +60,7 @@ void taskSleep(void* params)
       if(inLongSurvey.get()==1){
         myReadTime =  GNSS_READ_TIME;
       }
-      if (((millis() - runTimer) > myReadTime*1000) || (batteryPercent.get()<10))//if battery percent is too low
+      if (((millis() - runTimer) > myReadTime*1000) )//|| (batteryPercent.get()<10))//if battery percent is too low
       {
         Serial.printf("Sleep state 1 -> 2 Time: %s\n", displayTime.get());
 

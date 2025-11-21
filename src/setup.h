@@ -18,6 +18,7 @@
  */
  #define GNSS_ON
 
+// #define BLE_on
 /**
  * @brief Define this constant to enable continuous measurements
  * @details Writes data to the SD card at the specified read intervals but does not sleep
