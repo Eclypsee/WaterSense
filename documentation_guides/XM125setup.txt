@@ -12,7 +12,7 @@
 9.  select Silicon Labs Enhanced port and flash
 10. reset xm125 by tapping reset
 11. flash different firmware bin files(ie i2c distance detector) https://docs.sparkfun.com/SparkFun_Qwiic_Pulsed_Radar_Sensor_XM125/flashing_firmware_xm125/
-
+https://www.youtube.com/watch?v=Z8lQgxaJFOY&themeRefresh=1
 
 
 
