@@ -144,7 +144,7 @@ void setup()
   inLongSurvey.put(-1);
 
   Wire.begin(SDA, SCL, CLK);
-  Wire1.begin(SDA2, SCL2, CLK);
+  // Wire1.begin(SDA2, SCL2, CLK);
 
   wakeReady.put(false);
   xTaskCreate(taskSD, "SD Task", 8192, NULL, 8, NULL);

@@ -32,10 +32,10 @@
  * @details 
  * 
  */
-#define SCL 4 
-#define SDA 3 
-#define SCL2 12 
-#define SDA2 13 
+#define SCL 27
+#define SDA 26 
+// #define SCL2 12 
+// #define SDA2 26 
 #define CLK 100000
 
 #define MAX_FILESIZE 50*1024 //max size a file can be in kb
