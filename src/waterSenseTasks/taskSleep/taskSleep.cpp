@@ -4,16 +4,21 @@
 #include "taskSleep.h"
 
 namespace {
-void waitWithHeartbeat(uint32_t durationSeconds) {
-  const TickType_t deadline =
-      xTaskGetTickCount() + pdMS_TO_TICKS(durationSeconds * 1000UL);
+bool waitWithHeartbeat(uint32_t durationSeconds) {
+  const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(durationSeconds * 1000UL);
   while (static_cast<int32_t>(deadline - xTaskGetTickCount()) > 0) {
     if (xEventGroupGetBits(lifecycleEvents) & EVENT_FATAL_ERROR) {
-      return;
+      return false;
+    }
+    const BatterySnapshot battery = getBatterySnapshot();
+    if (battery.valid && battery.percent <= LOW_BATTERY_PERCENT) {
+      Serial.printf("[Power] Low battery: %.1f%%; shutting down early\n", battery.percent);
+      return false;
     }
     reportHeartbeat(TaskId::Sleep);
     vTaskDelay(pdMS_TO_TICKS(500));
   }
+  return true;
 }
 }  // namespace
 
@@ -70,6 +75,8 @@ void taskSleep(void *) {
   const uint64_t sleepUs =
       requestedSleepUs > alignmentCapUs ? alignmentCapUs : requestedSleepUs;
 
+  digitalWrite(GNSS_EN_PIN, LOW); 
+  vTaskDelay(pdMS_TO_TICKS(100));
   Serial.printf("[Power] Sleeping for %llu seconds\n",
                 static_cast<unsigned long long>(sleepUs / 1000000ULL));
   esp_sleep_enable_timer_wakeup(sleepUs);

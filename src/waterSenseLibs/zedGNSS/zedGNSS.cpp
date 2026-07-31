@@ -26,6 +26,7 @@ bool GNSS::begin() {
       xSemaphoreGive(i2cMutex);
     }
     if (connected) {
+      Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
       break;
     }
     Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
@@ -42,17 +43,25 @@ bool GNSS::begin() {
 
   // Configure once per power cycle. Do not write receiver flash from the fix
   // acquisition loop.
-  bool configured = true;
-  configured &= device_.setI2COutput(COM_TYPE_UBX, VAL_LAYER_RAM_BBR);
-  configured &= device_.setNavigationFrequency(1, VAL_LAYER_RAM_BBR);
-  configured &= device_.setAutoRXMSFRBXcallbackPtr(&onSfrbx,VAL_LAYER_RAM_BBR);
-  configured &= device_.setAutoRXMRAWXcallbackPtr(&onRawx,VAL_LAYER_RAM_BBR);
+  const bool outputOk = device_.setI2COutput(COM_TYPE_UBX, VAL_LAYER_RAM_BBR);
 
+  const bool frequencyOk = device_.setNavigationFrequency(1, VAL_LAYER_RAM_BBR);
+
+  const bool sfrbxOk = device_.setAutoRXMSFRBXcallbackPtr(&onSfrbx, VAL_LAYER_RAM_BBR);
+
+  const bool rawxOk = device_.setAutoRXMRAWXcallbackPtr(&onRawx, VAL_LAYER_RAM_BBR);
+
+  const bool configured = outputOk && frequencyOk && sfrbxOk && rawxOk;
+
+  Serial.printf( "[GNSS] Configuration: output=%d frequency=%d SFRBX=%d RAWX=%d\n",outputOk,frequencyOk,sfrbxOk,rawxOk);
   device_.logRXMSFRBX(true);
   device_.logRXMRAWX(true);
   xSemaphoreGive(i2cMutex);
 
   initialized_ = configured;
+  if (configured) {
+    Serial.println("[GNSS] Receiver configured successfully");
+  }
   if (!configured) {
     Serial.println("[GNSS] Receiver configuration failed");
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==

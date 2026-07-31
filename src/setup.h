@@ -1,8 +1,14 @@
 #ifndef WATERSENSE_SETUP_H
 #define WATERSENSE_SETUP_H
 
+//configuratoin and pins
+constexpr float LOW_BATTERY_PERCENT = 10.0f;
+#define GNSS_EN_PIN 21
+constexpr uint8_t MAX_SAMPLES = 16;//maximum amount of samples the radar gets before doing a median and sending it to log
 // Optional subsystems and operating modes.
-#define GNSS_ON
+#define DEBUG_DISABLE_SD
+#define DEBUG_DISABLE_RADAR
+// #define GNSS_ON
 // #define BLE_on
 // #define CONTINUOUS
 

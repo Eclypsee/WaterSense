@@ -16,8 +16,10 @@ bool beginRtc(RTC_DS3231 &rtc) {
       xSemaphoreGive(i2cMutex);
     }
     if (found) {
+      Serial.printf("[RTC] Detected on attempt %u\n", attempt + 1);
       return true;
     }
+    Serial.printf("[RTC] Detection attempt %u failed\n", attempt + 1);
     reportHeartbeat(TaskId::Clock);
     vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
   }
@@ -99,15 +101,13 @@ void taskClockGNSS2(void *) {
   }
 
   if (gnssRunning) {
-    const TickType_t fixDeadline =
-        xTaskGetTickCount() + pdMS_TO_TICKS(FIX_DELAY * 1000UL);
+    const TickType_t fixDeadline = xTaskGetTickCount() + pdMS_TO_TICKS(FIX_DELAY * 1000UL);
     do {
       GnssFix fix{};
       gnss.poll(fix);
       gnss.drainFullBuffers();
       if (fix.valid) {
-        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7,
-                 fix.altitudeMslMm, true};
+        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7, fix.altitudeMslMm, true};
         setClockSnapshot(clock);
         lastFixedUnix = fix.unixTime;
         if (rtcAvailable) {
@@ -117,9 +117,7 @@ void taskClockGNSS2(void *) {
       }
       reportHeartbeat(TaskId::Clock);
       vTaskDelay(pdMS_TO_TICKS(CLOCK_PERIOD));
-    } while (static_cast<int32_t>(fixDeadline - xTaskGetTickCount()) > 0 &&
-             !(xEventGroupGetBits(lifecycleEvents) &
-               EVENT_SHUTDOWN_REQUEST));
+    } while (static_cast<int32_t>(fixDeadline - xTaskGetTickCount()) > 0 && !(xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST));
   }
 
   if (clock.unixTime == 0 && rtcValid) {
@@ -129,17 +127,18 @@ void taskClockGNSS2(void *) {
 
   TickType_t lastRtcUpdate = 0;
   while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST)) {
+    bool fixValid = false;
     if (gnssRunning) {
       GnssFix fix{};
       gnss.poll(fix);
       gnss.drainFullBuffers();
       if (fix.valid) {
-        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7,
-                 fix.altitudeMslMm, true};
+        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7, fix.altitudeMslMm, true};
         setClockSnapshot(clock);
+        fixValid = true;
       }
-    } else if (rtcValid &&
-               xTaskGetTickCount() - lastRtcUpdate >= pdMS_TO_TICKS(1000)) {
+    } 
+    if (!fixValid && rtcValid && xTaskGetTickCount() - lastRtcUpdate >= pdMS_TO_TICKS(1000)) {
       publishRtcTime(rtc);
       lastRtcUpdate = xTaskGetTickCount();
     }

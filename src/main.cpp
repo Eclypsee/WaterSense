@@ -30,6 +30,10 @@ void setup() {
     delay(10);
   }
 
+  pinMode(GNSS_EN_PIN, OUTPUT);
+  digitalWrite(GNSS_EN_PIN, HIGH); 
+  delay(10);
+  
   if (!sharedDataBegin()) {
     Serial.println("[FATAL] Unable to allocate FreeRTOS synchronization objects");
     delay(1000);

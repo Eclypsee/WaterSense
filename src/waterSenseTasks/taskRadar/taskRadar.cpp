@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "SparkFun_Qwiic_XM125_Arduino_Library.h"
+#include <algorithm>
 
 #include "sharedData.h"
 #include "taskRadar.h"
@@ -22,6 +23,11 @@ void taskRadar(void *) {
   constexpr uint32_t maximumRangeMm = 13000;
   bool initialized = false;
 
+  //getting the median of MAX_SAMPLES values
+  uint32_t samples[MAX_SAMPLES];
+  uint8_t sampleCount = 0;
+  TickType_t lastPublish = xTaskGetTickCount();
+
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
@@ -29,6 +35,7 @@ void taskRadar(void *) {
           radar.begin(address, Wire) == 1 &&
           radar.distanceSetup(minimumRangeMm, maximumRangeMm) == 0;
       if (initialized) {
+        Serial.printf("[RADAR] Initialized on attempt %u\n", attempt + 1);
         radar.setCloseRangeLeakageCancellation(true);
       }
       xSemaphoreGive(i2cMutex);
@@ -41,9 +48,17 @@ void taskRadar(void *) {
   }
 
   if (!initialized) {
-    signalFatalError("radar", "initialization failed");
-    xEventGroupSetBits(lifecycleEvents, EVENT_RADAR_STOPPED);
-    vTaskSuspend(nullptr);
+    #ifndef DEBUG_DISABLE_RADAR
+      signalFatalError("radar", "initialization failed");
+      xEventGroupSetBits(lifecycleEvents, EVENT_RADAR_STOPPED);
+      vTaskSuspend(nullptr);
+    #endif
+    #ifdef DEBUG_DISABLE_RADAR
+      Serial.println("[Radar] unavailable; continuing without radar");
+      xEventGroupSetBits(lifecycleEvents, EVENT_RADAR_STOPPED);
+      reportHeartbeat(TaskId::Radar);
+      vTaskSuspend(nullptr);
+    #endif
   }
 
   while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST)) {
@@ -69,19 +84,33 @@ void taskRadar(void *) {
       xSemaphoreGive(i2cMutex);
     }
 
-    if (setupResult == 0 && furthestMm > 0) {
-      const ClockSnapshot clock = getClockSnapshot();
-      const BatterySnapshot battery = getBatterySnapshot();
-      MeasurementRecord record{
-          clock.unixTime,
-          static_cast<int32_t>(furthestMm),
-          battery.voltage,
-          battery.percent
-      };
-      if (xQueueSend(measurementQueue, &record, pdMS_TO_TICKS(100)) !=
-          pdTRUE) {
-        Serial.println("[Radar] Measurement queue full; sample dropped");
+    if (setupResult == 0 && furthestMm > 0 && sampleCount < MAX_SAMPLES) {
+      samples[sampleCount++] = furthestMm;
+    }
+    if (xTaskGetTickCount() - lastPublish >= pdMS_TO_TICKS(1000)) {
+      if (sampleCount > 0) {
+        std::sort(samples, samples + sampleCount);
+        uint32_t median;
+        if (sampleCount & 1) {
+          median = samples[sampleCount / 2];
+        } else {
+          median = (samples[sampleCount / 2 - 1] + samples[sampleCount / 2]) / 2;
+        }
+        const ClockSnapshot clock = getClockSnapshot();
+        const BatterySnapshot battery = getBatterySnapshot();
+        MeasurementRecord record{
+            clock.unixTime,
+            static_cast<int32_t>(median),
+            battery.voltage,
+            battery.percent
+        };
+        if (xQueueSend(measurementQueue, &record, pdMS_TO_TICKS(100)) != pdTRUE) {
+          Serial.println("[Radar] Measurement queue full; sample dropped");
+        }
+        Serial.printf("[Radar] Publishing median value: %u mm\n", median);
+        sampleCount = 0;
       }
+      lastPublish += pdMS_TO_TICKS(1000);
     }
 
     reportHeartbeat(TaskId::Radar);

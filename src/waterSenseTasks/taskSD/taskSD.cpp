@@ -39,11 +39,21 @@ void taskSD(void *) {
   }
   xSemaphoreGive(sdMutex);
 
-  if (!initialized || !filesReady) {
-    signalFatalError("storage", "SD initialization or file creation failed");
-    xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
-    vTaskSuspend(nullptr);
-  }
+  #ifndef DEBUG_DISABLE_SD
+    if (!initialized || !filesReady) {
+      signalFatalError("storage", "SD initialization or file creation failed");
+      xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
+      vTaskSuspend(nullptr);
+    }
+  #endif
+  #ifdef DEBUG_DISABLE_SD
+    if (!initialized || !filesReady) {
+      Serial.println("[SD] SD unavailable; continuing without storage");
+      xEventGroupSetBits(lifecycleEvents,EVENT_STORAGE_READY | EVENT_STORAGE_STOPPED);
+      reportHeartbeat(TaskId::Storage);
+      vTaskSuspend(nullptr);
+    }
+  #endif
 
   xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_READY);
 

@@ -24,9 +24,8 @@ void taskVoltage(void *) {
         xSemaphoreGive(i2cMutex);
       }
       if (!initialized) {
-        Serial.println("[Voltage] MAX17048 unavailable; retrying later");
-        nextInitializationAttempt =
-            xTaskGetTickCount() + pdMS_TO_TICKS(30000);
+        Serial.printf("[Voltage] MAX17048 unavailable; retrying later\n");
+        nextInitializationAttempt = xTaskGetTickCount() + pdMS_TO_TICKS(30000);
       }
     }
 

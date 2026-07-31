@@ -71,7 +71,14 @@ ClockSnapshot getClockSnapshot() {
 void setClockSnapshot(const ClockSnapshot &snapshot) {
   if (!withStateLock([&] { clockState = snapshot; })) {
     signalFatalError("shared state", "clock state mutex timeout");
+    return;
   }
+   Serial.printf("[Clock] unix=%lu pos=%s lat=%.7f lon=%.7f alt=%.3f\n",
+      static_cast<unsigned long>(snapshot.unixTime),
+      snapshot.positionValid ? "valid" : "unknown",
+      snapshot.positionValid ? snapshot.latitudeE7 / 1e7 : 0.0,
+      snapshot.positionValid ? snapshot.longitudeE7 / 1e7 : 0.0,
+      snapshot.positionValid ? snapshot.altitudeMslMm / 1000.0 : 0.0);
 }
 
 BatterySnapshot getBatterySnapshot() {
