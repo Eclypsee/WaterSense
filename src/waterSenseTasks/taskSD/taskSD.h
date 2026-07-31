@@ -10,4 +10,9 @@
  */
 
 
-void taskSD(void* params);
+#ifndef TASK_SD_H
+#define TASK_SD_H
+
+void taskSD(void *params);
+
+#endif

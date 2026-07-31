@@ -1,116 +1,32 @@
-/**
- * @file bluetooth.h
- * @author Evan Lee
- * @brief Header file for Bluetooth file management library
- * @version 0.1
- * @date 2024-01-01
- * 
- * @copyright Copyright (c) 2024
- * 
- */
-
 #ifndef BLUETOOTH_H
 #define BLUETOOTH_H
 
 #include <Arduino.h>
 #include <SdFat.h>
 
-
 class BluetoothFileManager {
-private:
-    String fileList;
-    String currentFileData;
-    String currentFileName;
-    bool fileLoaded;
-    uint32_t currentChecksum;
-    
-    /**
-     * @brief Get file list from SD card
-     * @return String Comma-separated list of files
-     */
-    String getFileListFromSD();
-    
-    /**
-     * @brief Load file data from SD card
-     * @param fileName Name of file to load
-     * @return bool True if file loaded successfully
-     */
-    bool loadFileFromSD(const String& fileName);
-    
-    /**
-     * @brief Calculate checksum for given data
-     * @param data String data to calculate checksum for
-     * @return uint32_t Checksum value
-     */
-    uint32_t calculateChecksum(const String& data);
+ public:
+  bool begin();
+  bool loadFile(const String &fileName);
+  size_t readChunk(uint8_t *destination, size_t capacity);
+  bool transferFinished() const;
+  uint32_t getCurrentChecksum() const;
+  size_t getCurrentFileSize() const;
+  void clearFile();
+  bool generateFileList();
+  uint16_t getFileListCount() const;
 
-public:
-    /**
-     * @brief Constructor
-     */
-    BluetoothFileManager();
-    
-    /**
-     * @brief Initialize the file manager
-     * @return bool True if initialization successful
-     */
-    bool begin();
-    
-    /**
-     * @brief Get the current file list
-     * @return String Current file list
-     */
-    String getFileList();
-    
-    /**
-     * @brief Load a specific file
-     * @param fileName Name of file to load
-     * @return bool True if file loaded successfully
-     */
-    bool loadFile(const String& fileName);
-    
-    /**
-     * @brief Get the currently loaded file data
-     * @return String File data
-     */
-    String getFileData();
-    
-    /**
-     * @brief Get the currently loaded file name
-     * @return String File name
-     */
-    String getCurrentFileName();
-    
-    /**
-     * @brief Check if a file is currently loaded
-     * @return bool True if file is loaded
-     */
-    bool isFileLoaded();
-    
-    /**
-     * @brief Get the checksum of the currently loaded file
-     * @return uint32_t Checksum value
-     */
-    uint32_t getCurrentChecksum();
-    
-    /**
-     * @brief Refresh the file list from SD card
-     */
-    void refreshFileList();
-    
-    /**
-     * @brief Clear the currently loaded file data
-     */
-    void clearFile();
-    
-    /**
-     * @brief Generate file list as text file
-     * @return bool True if file list generated successfully
-     */
-    bool generateFileList();
+ private:
+  uint32_t updateChecksum(uint32_t checksum, uint8_t value) const;
+
+  ExFile currentFile_;
+  String currentFileName_;
+  size_t currentFileSize_ = 0;
+  size_t currentOffset_ = 0;
+  uint32_t currentChecksum_ = 0;
+  uint16_t fileListCount_ = 0;
 };
 
-// Global instance
 extern BluetoothFileManager bluetoothFileManager;
 
-#endif // BLUETOOTH_H 
+#endif

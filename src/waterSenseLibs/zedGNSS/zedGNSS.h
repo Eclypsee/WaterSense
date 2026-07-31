@@ -1,37 +1,38 @@
-/**
- * @file zedGNSS.h
- * 
- */
-
-
 #ifndef ZED_GNSS_H
 #define ZED_GNSS_H
 
-#include <SPI.h> 
-#include <Wire.h> 
-#include <iostream> 
 #include <SparkFun_u-blox_GNSS_v3.h>
+
 #include "sharedData.h"
 
-#define fileBufferSize 20000 ///< Allocate 20KBytes of RAM (max buffer size 22.3kB) for UBX message storage  
+#define fileBufferSize 20000
 
-class GNSS
-{
-    protected:
-        // Protected data
-        int sda, scl, clk;
-
-    public:
-        // Public data
-        SFE_UBLOX_GNSS gnss;
-        GNSS(int sda, int scl, int clk);
-        void start();
-        void start_no_survey();
-        void getGNSSData();
-        void setDisplayTime();
+struct GnssFix {
+  uint32_t unixTime;
+  int32_t latitudeE7;
+  int32_t longitudeE7;
+  int32_t altitudeMslMm;
+  bool valid;
 };
 
-void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct);
-void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct);
+class GNSS {
+ public:
+  bool begin();
+  bool poll(GnssFix &fix);
+  void drainFullBuffers();
+  void flushBuffers();
+  bool shutdown();
 
-#endif //ZED_GNSS_H
+  uint32_t sfrbxCount() const { return sfrbxCount_; }
+  uint32_t rawxCount() const { return rawxCount_; }
+
+ private:
+  bool enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait);
+
+  SFE_UBLOX_GNSS device_;
+  bool initialized_ = false;
+  uint32_t sfrbxCount_ = 0;
+  uint32_t rawxCount_ = 0;
+};
+
+#endif

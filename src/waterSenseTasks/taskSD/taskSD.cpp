@@ -1,193 +1,111 @@
-/**
- * @file taskSD.cpp
- * @author Alexander Dunn, Evan Lee
- * @brief Main file for the SD task
- * @version 0.1
- * @date 2023-02-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #include <Arduino.h>
-#include "taskSD.h"
-#include "setup.h"
+
 #include "sharedData.h"
+#include "taskSD.h"
 #include "waterSenseLibs/sdData/sdData.h"
-/**
- * @brief The SD storage task
- * @details Creates relevant files on   the SD card and stores all data
- * 
- * @param params A pointer to task parameters
- */
-void taskSD(void* params)
-{
-  SD_Data mySD(SD_CS);
-  ExFile myFile;
-  ExFile GNSS;
 
-  // Task Setup
-  uint8_t state = 0;
+namespace {
+bool lockSd() {
+  return xSemaphoreTake(sdMutex, pdMS_TO_TICKS(SD_MUTEX_TIMEOUT_MS)) ==
+         pdTRUE;
+}
+}  // namespace
 
-  // Task Loop
-  while (true)
-  {
-    if(writeFinishedSD.get() && BluetoothConnected.get()){
-      state = 6;//SUSPEND SD OPERATIONS
-      continue;
+void taskSD(void *) {
+  while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_CLOCK_READY)) {
+    reportHeartbeat(TaskId::Storage);
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+
+  SD_Data storage(SD_CS);
+  ExFile measurementFile;
+  ExFile gnssFile;
+
+  if (!lockSd()) {
+    signalFatalError("storage", "SD mutex unavailable during initialization");
+    xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
+    vTaskSuspend(nullptr);
+  }
+
+  const bool initialized = storage.begin();
+  bool filesReady = false;
+  if (initialized) {
+    const ClockSnapshot clock = getClockSnapshot();
+    filesReady = storage.writeHeader() &&
+                 storage.createDataFile(measurementFile, clock.unixTime);
+    if (filesReady && getSurveyMode() == SurveyMode::GnssRaw) {
+      filesReady = storage.createGnssFile(gnssFile, clock.unixTime);
     }
-    // Begin
-    if (state == 0)
-    {
-      if (wakeReady.get())
-      {
-        // Check/create header files
-        if ((wakeCounter % 1000) == 0)
-        {
-          writeFinishedSD.put(false);
-          mySD.writeHeader();
-          writeFinishedSD.put(true);
+  }
+  xSemaphoreGive(sdMutex);
+
+  if (!initialized || !filesReady) {
+    signalFatalError("storage", "SD initialization or file creation failed");
+    xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
+    vTaskSuspend(nullptr);
+  }
+
+  xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_READY);
+
+  for (;;) {
+    MeasurementRecord record{};
+    if (xQueueReceive(measurementQueue, &record, pdMS_TO_TICKS(SD_PERIOD)) ==
+        pdTRUE) {
+      if (lockSd()) {
+        if (measurementFile.fileSize() >= MAX_FILESIZE) {
+          storage.createDataFile(measurementFile, record.unixTime);
         }
-
-
-        if(inLongSurvey.get()==1){
-          writeFinishedSD.put(false);
-          GNSS = mySD.createGNSSFile();
-          writeFinishedSD.put(true);
+        if (!storage.writeMeasurement(measurementFile, record)) {
+          signalFatalError("storage", "measurement write failed");
         }
-        writeFinishedSD.put(false);
-        myFile = mySD.createFile(unixTime.get());
-        writeFinishedSD.put(true);
-
-        fileCreated.put(true);
-
-        state = 1;
+        xSemaphoreGive(sdMutex);
+      } else {
+        xQueueSendToFront(measurementQueue, &record, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
       }
     }
 
-    // Check for data and populate buffer
-    else if (state == 1)
-    {
-      uint32_t gnssDataReadyValue = gnssDataReady.get();
-      if(inLongSurvey.get()==1){
-        if (gnssDataReadyValue) //hangs whyyyyyyy?
-        {//store gnss data, move on
-          gnssDataReady.put(false);
-          writeFinishedSD.put(false);
-      
-          String path = mySD.getGNSSFilePath();
-    
-          ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
-          if (checkFile && checkFile.size() >= MAX_FILESIZE) {
-            Serial.println("GNSS file too large, creating new file");
-            checkFile.close();
-            GNSS = mySD.createGNSSFile(); // This should update the internal path
-            path = mySD.getGNSSFilePath(); // Get the new path
-          } else if (checkFile) {
-              checkFile.close();
-          }
-    
-          GNSS = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
-          mySD.writeGNSSData(GNSS, myBuffer);
-          mySD.sleep(GNSS);
-    
-          Serial.println("GNSS data written to SD card");
-    
-          writeFinishedSD.put(true);
-    
+    GnssBuffer *buffer = nullptr;
+    while (xQueueReceive(gnssReadyQueue, &buffer, 0) == pdTRUE) {
+      if (!lockSd()) {
+        xQueueSendToFront(gnssReadyQueue, &buffer, 0);
+        break;
+      }
+      if (!gnssFile) {
+        storage.createGnssFile(gnssFile, getClockSnapshot().unixTime);
+      } else if (gnssFile.fileSize() + buffer->length >= MAX_FILESIZE) {
+        storage.createGnssFile(gnssFile, getClockSnapshot().unixTime);
+      }
+      if (!storage.writeGnssData(gnssFile, buffer->data, buffer->length)) {
+        signalFatalError("storage", "GNSS write failed");
+      }
+      xSemaphoreGive(sdMutex);
+      buffer->length = 0;
+      xQueueSend(gnssFreeQueue, &buffer, portMAX_DELAY);
+    }
+
+    const EventBits_t bits = xEventGroupGetBits(lifecycleEvents);
+    const bool producersDone =
+        (bits & (EVENT_GNSS_DONE | EVENT_RADAR_STOPPED)) ==
+        (EVENT_GNSS_DONE | EVENT_RADAR_STOPPED);
+    const bool shutdownRequested = bits & EVENT_SHUTDOWN_REQUEST;
+    if (shutdownRequested && producersDone &&
+        uxQueueMessagesWaiting(gnssReadyQueue) == 0 &&
+        uxQueueMessagesWaiting(measurementQueue) == 0) {
+      if (lockSd()) {
+        const ClockSnapshot clock = getClockSnapshot();
+        if (clock.positionValid) {
+          storage.writeLog(clock);
         }
+        storage.close(measurementFile);
+        storage.close(gnssFile);
+        xSemaphoreGive(sdMutex);
       }
-      if(dataReady.get()){
-        dataReady.put(false);
-        state = 2;
-      }
-      // If sleepFlag is tripped, go to state 3
-      if (sleepFlag.get() && !gnssDataReadyValue)
-      {
-        state = 3;
-      }
+      xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
+      reportHeartbeat(TaskId::Storage);
+      vTaskSuspend(nullptr);
     }
 
-    // Store data
-    else if (state == 2)
-    {
-      writeFinishedSD.put(false);
-      // Get sonar data
-      int16_t myDist = distance.get();
-
-      // Get voltages
-      float batteryP = batteryPercent.get();
-      float batteryVoltage = battery.get();
-
-      uint32_t myTime = unixTime.get();
-
-      // Write data to SD card
-      String path = mySD.getDataFilePath();
-
-      ExFile checkFile = SD.open(path.c_str(), O_RDONLY);
-      if (checkFile && checkFile.size() >= MAX_FILESIZE) {
-        checkFile.close();
-        myFile = mySD.createFile(unixTime.get()); // This should update the internal path
-        path = mySD.getDataFilePath(); // Get the new path
-      } else if (checkFile) {
-          checkFile.close();
-      }
-
-      myFile = SD.open(path.c_str(), O_RDWR | O_CREAT | O_APPEND);
-      mySD.writeData(myFile, myDist, myTime, batteryVoltage, batteryP);
-      mySD.sleep(myFile);
-
-      // Print data to serial monitor
-      Serial.printf("%d, %d, %0.2f, %0.2f, %0.2f, %0.2f\n", myTime, myDist, batteryVoltage, batteryP);
-      Serial.println(myTime);
-
-      writeFinishedSD.put(true);
-
-      state = 1;
-    }
-
-    // Write Log
-    else if (state == 3)
-    {
-      writeFinishedSD.put(false);
-      // If we have a fix, write data to the log
-      if (fixType.get())
-      {
-        Serial.printf("Writing log file Time: %s\n", displayTime.get());
-        uint32_t tim = unixTime.get();
-        int32_t lat = latitude.get();
-        int32_t lon = longitude.get();
-        int32_t alt = altitude.get();
-
-        mySD.writeLog(tim, wakeCounter, lat, lon, alt);
-
-        writeFinishedSD.put(true);
-      }
-
-      state = 4;
-    }
-
-    // Sleep
-    else if (state == 4)
-    {
-      // Close data file
-      mySD.sleep(myFile);
-      mySD.sleep(GNSS);
-      sdSleepReady.put(true);
-    }
-
-    else if(state == 6)//suspend sd operations(not sleep)
-    {
-      // Close data file
-      mySD.sleep(myFile);
-      mySD.sleep(GNSS);
-      sdSleepReady.put(true);
-      if(BluetoothConnected.get() == false){
-        state = 1;
-      }
-    }
-
-    sdCheck.put(true);
-    vTaskDelay(SD_PERIOD);
+    reportHeartbeat(TaskId::Storage);
   }
 }

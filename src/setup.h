@@ -1,111 +1,51 @@
-/**
- * @file setup.h
- * @author Evan Lee
- * @brief A file to contain all setup information
- * @version 0.1
- * @date 2025 peak
- * 
- * @copyright Copyright (c) 2023
- * 
- */
+#ifndef WATERSENSE_SETUP_H
+#define WATERSENSE_SETUP_H
 
-//-----------------------------------------------------------------------------------------------------||
-//---------- Define Constants -------------------------------------------------------------------------||
-/**
- * @brief Define this constant to enable GNSS
- * @details If undefined, GNSS will not be enabled
- * 
- */
- #define GNSS_ON
-
+// Optional subsystems and operating modes.
+#define GNSS_ON
 // #define BLE_on
-/**
- * @brief Define this constant to enable continuous measurements
- * @details Writes data to the SD card at the specified read intervals but does not sleep
- * 
- */
-#define CONTINUOUS
+// #define CONTINUOUS
 
-
-/**
- * @brief Define the pins for the DEFAULT i2c buses
- * @details 
- * 
- */
+// Shared I2C bus.
 #define SCL 27
-#define SDA 26 
-// #define SCL2 12 
-// #define SDA2 26 
+#define SDA 26
 #define CLK 100000
 
-#define MAX_FILESIZE 50*1024 //max size a file can be in kb
-#define BT_TRANSF_SIZE 64*1024 //max size a file can be for bluetooth to transfer
+// Storage.
+#define SD_CS GPIO_NUM_5
+#define MAX_FILESIZE (50UL * 1024UL)
+#define BT_TRANSF_SIZE (64UL * 1024UL)
+#define sdWriteSize 8192
 
-/**
- * @brief Define this constant to enable variable duty cycle
- * @details If undefined, HI_READ and HI_ALLIGN are used
- * 
- */
-//#define VARIABLE_DUTY ///< Define this constant to enable variable duty cycle
-//----------------------||
-#define HI_READ 60*5 //||
-#define MID_READ 60*2 //||
-#define LOW_READ 60*1 //||
-//                    //||
-#define HI_ALLIGN 10 //||
-#define MID_ALLIGN 30 //||
-#define LOW_ALLIGN 60 //||
-//----------------------||
+// Measurement and sleep cadence.
+#define HI_READ (5UL * 60UL)
+#define HI_ALLIGN 10
+#define GNSS_READ_TIME (8UL * 60UL * 60UL)
+#define GNSS_MONTH_SECONDS (30UL * 24UL * 60UL * 60UL)
+#define FIX_DELAY (2UL * 60UL)
 
-#define GNSS_READ_TIME 60 * 60 * 8 //in seconds. right now its 8 hours
-
-#define GNSS_STANDALONE_SLEEP (uint64_t) 60 * 1000000///<us of sleep time
-
-#define WAKE_CYCLES 15 ///< Number of wake cycles between reset checks
-#define FIX_DELAY 60*2 ///< Seconds to wait for first GPS fix
-// #define FIX_DELAY 1 ///< Seconds to wait for first GPS fix
-
-#define WATCH_TIMER 30*1000 ///< ms of hang time before triggering a reset
-
-#define MEASUREMENT_PERIOD 100 ///< Measurement task period in ms
-#define SD_PERIOD 10 ///< SD task period in ms
-#define CLOCK_PERIOD 100 ///< Clock task period in ms
-#define SLEEP_PERIOD 100 ///< Sleep task period in ms
-#define VOLTAGE_PERIOD 1000 ///< Voltage task period in ms
-#define WATCHDOG_PERIOD 100 ///< Watchdog task period in ms
+// Task service periods, expressed in milliseconds.
+#define SD_PERIOD 10
+#define CLOCK_PERIOD 100
+#define VOLTAGE_PERIOD 1000
+#define WATCHDOG_PERIOD 100
 #define RADAR_TASK_PERIOD 100
-#define BLE_ADVERT_PERIOD 4800 
 #define BLE_POLLING_FREQ 20
 
-// #define R1b 9.54 ///< Larger resistor for battery voltage divider
-// #define R2b 2.96 ///< Smaller resistor for battery voltage divider
-#define R1b 9.25 ///< Larger resistor for battery voltage divider
-#define R2b 3.3 ///< Smaller resistor for battery voltage divider
+// Watchdog and shutdown deadlines.
+#define WATCH_TIMER (30UL * 1000UL)
+#define SHUTDOWN_TIMEOUT_MS (30UL * 1000UL)
 
-#define R1s 10.0 ///< Resistor for solar panel voltage divider
-#define R2s 10.0 ///< Resistor for solar panel voltage divider
+// Fixed-capacity synchronization objects.
+#define GNSS_BUFFER_COUNT 3
+#define MEASUREMENT_QUEUE_LENGTH 16
+#define HEARTBEAT_QUEUE_LENGTH 24
 
-#define sdWriteSize 8192 ///<Write data to the SD card in blocks of 8192 bytes
+// Bounded resource and hardware waits.
+#define STATE_MUTEX_TIMEOUT_MS 250
+#define I2C_MUTEX_TIMEOUT_MS 1000
+#define SD_MUTEX_TIMEOUT_MS 5000
+#define HARDWARE_RETRY_COUNT 5
+#define HARDWARE_RETRY_DELAY_MS 1000
 
-//-----------------------------------------------------------------------------------------------------||
-//-----------------------------------------------------------------------------------------------------||
-
-
-
-
-
-
-
-
-
-
-//-----------------------------------------------------------------------------------------------------||
-//---------- Define Pins ------------------------------------------------------------------------------||
-
-#define SD_CS GPIO_NUM_5 ///< SD card chip select pin
-//miso mosi are default
-
-#define ADC_PIN GPIO_NUM_6
-
-//-----------------------------------------------------------------------------------------------------||
-//-----------------------------------------------------------------------------------------------------||
+#endif

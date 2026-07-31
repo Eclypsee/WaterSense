@@ -9,4 +9,9 @@
  * 
  */
 
-void taskVoltage(void* params);
+#ifndef TASK_VOLTAGE_H
+#define TASK_VOLTAGE_H
+
+void taskVoltage(void *params);
+
+#endif

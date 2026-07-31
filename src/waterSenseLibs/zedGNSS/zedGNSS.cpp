@@ -1,165 +1,156 @@
-/**
- * @file zedGNSS.cpp
- * @author Armaan Oberai and Toma Grundler
- * @version 0.1
- * @date 2024-07-29
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #include "zedGNSS.h"
 
-GNSS :: GNSS(int sda, int scl, int clk) {
-  this->sda = sda;
-  this->scl = scl;
-  this->clk = clk;
+#include <Wire.h>
+
+namespace {
+uint32_t callbackSfrbxCount = 0;
+uint32_t callbackRawxCount = 0;
+
+void onSfrbx(UBX_RXM_SFRBX_data_t *) {
+  ++callbackSfrbxCount;
 }
 
-void GNSS :: start() {
-  // gnss.factoryReset();
-  // Serial.println("Factory reset");
-  delay(1000);
-    //gnss.enableDebugging();
-    gnss.setFileBufferSize(fileBufferSize);
-    //Serial.printf("File Buffer Size: %zu", gnss.fileBufferAvailable());
-    while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
-    { 
-      Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
+void onRawx(UBX_RXM_RAWX_data_t *) {
+  ++callbackRawxCount;
+}
+}  // namespace
+
+bool GNSS::begin() {
+  device_.setFileBufferSize(fileBufferSize);
+
+  bool connected = false;
+  for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+        pdTRUE) {
+      connected = device_.begin(Wire, 0x42);
+      xSemaphoreGive(i2cMutex);
     }
+    if (connected) {
+      break;
+    }
+    Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
+    vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
+  }
+  if (!connected) {
+    return false;
+  }
 
-    gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
-    gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
-    gnss.setNavigationFrequency(1); // Produce one navigation solution per second (that's plenty for Precise Point Positioning) 
-    gnss.setAutoRXMSFRBXcallbackPtr(&newSFRBX); // Enable automatic RXM SFRBX messages with callback to newSFRBX 
-    gnss.logRXMSFRBX(); // Enable RXM SFRBX data logging 
-    gnss.setAutoRXMRAWXcallbackPtr(&newRAWX); // Enable automatic RXM RAWX messages with callback to newRAWX 
-    gnss.logRXMRAWX(); // Enable RXM RAWX data logging 
-    gnss.setHighPrecisionMode();
-    gnss.getTimeDOP();
-    gnss.saveConfiguration();
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+      pdTRUE) {
+    return false;
+  }
 
-    bool locFix = gnss.getGnssFixOk();
-    bool timeValid = gnss.getTimeValid();
-    bool dateValid = gnss.getDateValid();
-    Serial.printf("loc valid: %hhu, time valid: %d, date valid: %d\n", locFix, timeValid, dateValid);
+  // Configure once per power cycle. Do not write receiver flash from the fix
+  // acquisition loop.
+  bool configured = true;
+  configured &= device_.setI2COutput(COM_TYPE_UBX, VAL_LAYER_RAM_BBR);
+  configured &= device_.setNavigationFrequency(1, VAL_LAYER_RAM_BBR);
+  configured &= device_.setAutoRXMSFRBXcallbackPtr(&onSfrbx,VAL_LAYER_RAM_BBR);
+  configured &= device_.setAutoRXMRAWXcallbackPtr(&onRawx,VAL_LAYER_RAM_BBR);
 
+  device_.logRXMSFRBX(true);
+  device_.logRXMRAWX(true);
+  xSemaphoreGive(i2cMutex);
 
-
-    Serial.println("Getting Unix Epoch...");
-    unixTime.put(gnss.getUnixEpoch());
-    Serial.println("Got Unix Epoch");
-
-    Serial.println("Setting display time...");
-    setDisplayTime();
-    Serial.println("Set display time");
-
-    Serial.println("Getting altitude...");
-    altitude.put(gnss.getAltitude());
-    Serial.println("Got altitude");
-
-    Serial.println("Getting latitude...");
-    latitude.put(gnss.getLatitude());
-    Serial.println("Got latitude");
-
-    Serial.println("Getting longitude...");
-    longitude.put(gnss.getLongitude());
-    Serial.println("Got longitude");
-
-    wakeReady.put(locFix&&timeValid&&dateValid);
-    fixType.put(locFix&&timeValid&&dateValid);
-    Serial.printf("GNSS successfully initialized. location valid: %hhu, time valid: %d, date valid: %d, Wake everyone?: %d\n", locFix, timeValid, dateValid, wakeReady.get());
+  initialized_ = configured;
+  if (!configured) {
+    Serial.println("[GNSS] Receiver configuration failed");
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+        pdTRUE) {
+      device_.powerOff(0);
+      device_.end();
+      xSemaphoreGive(i2cMutex);
+    }
+  }
+  return configured;
 }
 
-// void GNSS :: start_no_survey() {
-//   while (gnss.begin(Wire, 0x42) == false) // Connect to the u-blox module using Wire port 
-//   { 
-//     Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing.")); 
-//   }
+bool GNSS::poll(GnssFix &fix) {
+  if (!initialized_ ||
+      xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+          pdTRUE) {
+    return false;
+  }
 
-//   gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise) 
-//   gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); // Save (only) the communications port settings to flash and BBR
-//   gnss.getTimeDOP();
-//   gnss.saveConfiguration();
-//   Serial.println("Time DOP");
-  
-
-//   unixTime.put(gnss.getUnixEpoch());
-//   fixType.put(gnss.getGnssFixOk());
-//   wakeReady.put(gnss.getGnssFixOk());
-//   Serial.printf("GNSS successfully initialized. Fix Type: %hhu, Wake everyone?: %d\n", fixType.get(), wakeReady.get());
-// }
-
-void GNSS :: getGNSSData() {
-        unixTime.put(gnss.getUnixEpoch());
-        if(gnss.checkUblox() == false) {
-          return;
-        }
-        if(gnss.fileBufferAvailable() >= (sdWriteSize)) {
-              gnss.extractFileBufferData(myBuffer, sdWriteSize); // Extract exactly sdWriteSize bytes from the UBX file buffer and put them into myBuffer
-              gnssDataReady.put(true);
-              // for(int i = 0; i < sdWriteSize; i++) {
-              //   writeBuffer.put(myBuffer[i]);
-              //   unixTime.put(gnss.getUnixEpoch());
-              // }
-              Serial.println("GNSS Buffer populated in queue");
-              gnss.checkUblox(); // Check for the arrival of new data and process it. 
-              return;
-        }
-        return;
+  const bool communicationOk = device_.checkUblox();
+  const bool valid = device_.getGnssFixOk() && device_.getTimeValid() && device_.getDateValid();
+  fix.unixTime = device_.getUnixEpoch();
+  fix.latitudeE7 = device_.getHighResLatitude();
+  fix.longitudeE7 = device_.getHighResLongitude();
+  fix.altitudeMslMm = device_.getAltitudeMSL();
+  fix.valid = valid;
+  sfrbxCount_ = callbackSfrbxCount;
+  rawxCount_ = callbackRawxCount;
+  xSemaphoreGive(i2cMutex);
+  return communicationOk;
 }
 
+bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
+  GnssBuffer *buffer = nullptr;
+  if (xQueueReceive(gnssFreeQueue, &buffer, freeBufferWait) != pdTRUE) {
+    return false;
+  }
 
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+      pdTRUE) {
+    xQueueSendToFront(gnssFreeQueue, &buffer, 0);
+    return false;
+  }
 
-void GNSS :: setDisplayTime() {
-  String s = String(unixTime.get());
-  displayTime.put(s);
+  device_.checkUblox();
+  const size_t available = device_.fileBufferAvailable();
+  size_t bytesToExtract = 0;
+  if (available >= sdWriteSize) {
+    bytesToExtract = sdWriteSize;
+  } else if (allowPartial && available > 0) {
+    bytesToExtract = available;
+  }
+
+  if (bytesToExtract > 0) {
+    device_.extractFileBufferData(buffer->data, bytesToExtract);
+  }
+  xSemaphoreGive(i2cMutex);
+
+  if (bytesToExtract == 0) {
+    buffer->length = 0;
+    xQueueSendToFront(gnssFreeQueue, &buffer, 0);
+    return false;
+  }
+
+  buffer->length = bytesToExtract;
+  if (xQueueSend(gnssReadyQueue, &buffer, pdMS_TO_TICKS(1000)) != pdTRUE) {
+    signalFatalError("GNSS", "ready-buffer queue invariant violated");
+    xQueueSend(gnssFreeQueue, &buffer, 0);
+    return false;
+  }
+  return true;
 }
 
-void newSFRBX(UBX_RXM_SFRBX_data_t *ubxDataStruct) 
-{ 
-  numSFRBX.put(numSFRBX.get() + 1); // Increment the count 
-} 
-
-void newRAWX(UBX_RXM_RAWX_data_t *ubxDataStruct) 
-{ 
-  numRAWX.put(numRAWX.get() + 1); // Increment the count 
+void GNSS::drainFullBuffers() {
+  while (enqueueOneBuffer(false, 0)) {
+  }
 }
 
-void printPVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
-{
-    Serial.println();
-
-    Serial.print(F("Time: ")); // Print the time
-    uint8_t hms = ubxDataStruct->hour; // Print the hours
-    if (hms < 10) Serial.print(F("0")); // Print a leading zero if required
-    Serial.print(hms);
-    Serial.print(F(":"));
-    hms = ubxDataStruct->min; // Print the minutes
-    if (hms < 10) Serial.print(F("0")); // Print a leading zero if required
-    Serial.print(hms);
-    Serial.print(F(":"));
-    hms = ubxDataStruct->sec; // Print the seconds
-    if (hms < 10) Serial.print(F("0")); // Print a leading zero if required
-    Serial.print(hms);
-    Serial.print(F("."));
-    unsigned long millisecs = ubxDataStruct->iTOW % 1000; // Print the milliseconds
-    if (millisecs < 100) Serial.print(F("0")); // Print the trailing zeros correctly
-    if (millisecs < 10) Serial.print(F("0"));
-    Serial.print(millisecs);
-
-    long latitude = ubxDataStruct->lat; // Print the latitude
-    Serial.print(F(" Lat: "));
-    Serial.print(latitude);
-
-    long longitude = ubxDataStruct->lon; // Print the longitude
-    Serial.print(F(" Long: "));
-    Serial.print(longitude);
-    Serial.print(F(" (degrees * 10^-7)"));
-
-    long altitude = ubxDataStruct->hMSL; // Print the height above mean sea level
-    Serial.print(F(" Height above MSL: "));
-    Serial.print(altitude);
-    Serial.println(F(" (mm)"));
+void GNSS::flushBuffers() {
+  // Storage continues consuming until EVENT_GNSS_DONE is set, so waiting for a
+  // free buffer here provides backpressure without losing the final partial
+  // block.
+  while (enqueueOneBuffer(true, portMAX_DELAY)) {
+  }
 }
 
+bool GNSS::shutdown() {
+  if (!initialized_) {
+    return true;
+  }
+
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+      pdTRUE) {
+    return false;
+  }
+  const bool poweredOff = device_.powerOff(0);
+  device_.end();
+  xSemaphoreGive(i2cMutex);
+  initialized_ = false;
+  return poweredOff;
+}

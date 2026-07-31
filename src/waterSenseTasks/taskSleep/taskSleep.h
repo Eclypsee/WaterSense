@@ -1,12 +1,6 @@
-/**
- * @file taskSleep.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2023-02-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
+#ifndef TASK_SLEEP_H
+#define TASK_SLEEP_H
 
-void taskSleep(void* params);
+void taskSleep(void *params);
+
+#endif

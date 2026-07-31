@@ -9,6 +9,9 @@
  * 
  */
 
-#include <ArduinoBLE.h>
+#ifndef TASK_BLUETOOTH_H
+#define TASK_BLUETOOTH_H
 
-void taskBluetooth(void* params);
+void taskBluetooth(void *params);
+
+#endif

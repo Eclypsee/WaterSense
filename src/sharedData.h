@@ -1,94 +1,107 @@
-/**
- * @file sharedData.h
- * @author Alexander Dunn
- * @brief A file to contain all shared variables
- * @version 0.1
- * @date 2023-02-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #ifndef SHARED_DATA_H
 #define SHARED_DATA_H
 
-#include "waterSenseLibs/shares/taskshare.h"
-#include "waterSenseLibs/shares/taskqueue.h"
+#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+
 #include "setup.h"
 
-//-----------------------------------------------------------------------------------------------------||
-//---------- Shares & Queues --------------------------------------------------------------------------||
+// Lifecycle bits. A task sets its STOPPED bit only after releasing hardware and
+// publishing all pending data.
+constexpr EventBits_t EVENT_CLOCK_READY       = BIT0;
+constexpr EventBits_t EVENT_STORAGE_READY     = BIT1;
+constexpr EventBits_t EVENT_SHUTDOWN_REQUEST  = BIT2;
+constexpr EventBits_t EVENT_CLOCK_STOPPED     = BIT3;
+constexpr EventBits_t EVENT_STORAGE_STOPPED   = BIT4;
+constexpr EventBits_t EVENT_RADAR_STOPPED     = BIT5;
+constexpr EventBits_t EVENT_BLUETOOTH_STOPPED = BIT6;
+constexpr EventBits_t EVENT_GNSS_DONE         = BIT7;
+constexpr EventBits_t EVENT_BLE_CONNECTED     = BIT8;
+constexpr EventBits_t EVENT_FATAL_ERROR       = BIT9;
+constexpr EventBits_t EVENT_VOLTAGE_STOPPED   = BIT10;
 
-// Non-Volatile Memory
-extern RTC_DATA_ATTR uint32_t wakeCounter; ///< A counter representing the number of wake cycles
-extern RTC_DATA_ATTR uint32_t lastFixedUTX; 
-extern RTC_DATA_ATTR float prevBatteryPercent; 
-//extern RTC_DATA_ATTR uint32_t lastKnownUnix;
-//extern RTC_DATA_ATTR uint32_t unixRtcStart;
-extern RTC_DATA_ATTR bool internal;
-extern RTC_DATA_ATTR int8_t utc_offset;
+constexpr EventBits_t EVENT_ALL_STOPPED =
+    EVENT_CLOCK_STOPPED | EVENT_STORAGE_STOPPED |
+    EVENT_RADAR_STOPPED | EVENT_BLUETOOTH_STOPPED |
+    EVENT_VOLTAGE_STOPPED;
 
+enum class SurveyMode : uint8_t {
+  Unknown,
+  Normal,
+  GnssRaw
+};
 
-// Watchdog Checks
-extern Share<bool> clockCheck;
-extern Share<bool> sleepCheck;
-extern Share<bool> measureCheck;
-extern Share<bool> voltageCheck;
-extern Share<bool> sdCheck;
-extern Share<bool> radarCheck;
-extern Share<bool> bluetoothCheck;
+struct ClockSnapshot {
+  uint32_t unixTime;
+  int32_t latitudeE7;
+  int32_t longitudeE7;
+  int32_t altitudeMslMm;
+  bool positionValid;
+};
 
-// Flags
-extern Share<bool> dataReady;
-extern Share<bool> sleepFlag;
-extern Share<bool> clockSleepReady;
-extern Share<bool> sonarSleepReady;
-extern Share<bool> tempSleepReady;
-extern Share<bool> radarSleepReady;
-extern Share<bool> radarDataReady;
-extern Share<bool> sdSleepReady;
-extern Share<bool> bluetoothSleepReady;
-extern Share<bool> gnssPowerSave;
-extern Share<bool> gnssDataReady;
-extern Share<bool> fileCreated;
-extern Share<bool> stopOperationSD;
-extern Share<bool> BluetoothConnected;
-extern Share<bool> writeFinishedSD;
+struct BatterySnapshot {
+  float voltage;
+  float percent;
+  bool valid;
+};
 
+struct MeasurementRecord {
+  uint32_t unixTime;
+  int32_t distanceMm;
+  float batteryVoltage;
+  float batteryPercent;
+};
 
-extern Share<int8_t> inLongSurvey;
+struct GnssBuffer {
+  size_t length;
+  uint8_t data[sdWriteSize];
+};
 
-// Shares from GNSS
-extern Share<int32_t> latitude;
-extern Share<int32_t> longitude;
-extern Share<int32_t> altitude;
-extern Share<bool> fixType;
-extern Share<uint32_t> unixTime;
-extern Share<String> displayTime;
-extern Share<bool> wakeReady;
-extern Share<uint64_t> sleepTime;
+enum class TaskId : uint8_t {
+  Clock,
+  Storage,
+  Radar,
+  Sleep,
+  Voltage,
+  Bluetooth,
+  Count
+};
 
-// Shares from sensors
-extern Share<int16_t> distance;
-extern Share<float> temperature;
-extern Share<float> humidity;
-extern Share<int> radarDistance;
+struct Heartbeat {
+  TaskId task;
+  TickType_t tick;
+};
 
-//Shares from GNSS
-extern Share<int> numSFRBX;
-extern Share<int> numRAWX;
-extern uint8_t *myBuffer;
+extern RTC_DATA_ATTR uint32_t wakeCounter;
+extern RTC_DATA_ATTR uint32_t lastFixedUnix;
+extern RTC_DATA_ATTR float previousBatteryPercent;
 
-// Duty Cycle
-extern Share<float> batteryPercent;
-extern Share<float> battery;
-extern Share<uint32_t> READ_TIME;
-extern Share<uint16_t> MINUTE_ALLIGN;
+extern EventGroupHandle_t lifecycleEvents;
+extern QueueHandle_t measurementQueue;
+extern QueueHandle_t gnssReadyQueue;
+extern QueueHandle_t gnssFreeQueue;
+extern QueueHandle_t heartbeatQueue;
+extern SemaphoreHandle_t stateMutex;
+extern SemaphoreHandle_t i2cMutex;
+extern SemaphoreHandle_t sdMutex;
 
-//Bluetooth shares
-extern Share<uint16_t> FILELIST_COUNT;//number of filelists generated STARTS FROM Filelist1.txt
+bool sharedDataBegin();
 
-#endif //SHARED_DATA_H
+ClockSnapshot getClockSnapshot();
+void setClockSnapshot(const ClockSnapshot &snapshot);
+BatterySnapshot getBatterySnapshot();
+void setBatterySnapshot(const BatterySnapshot &snapshot);
+SurveyMode getSurveyMode();
+void setSurveyMode(SurveyMode mode);
+uint32_t getReadTimeSeconds();
+void setReadTimeSeconds(uint32_t seconds);
+uint16_t getAlignmentMinutes();
+void setAlignmentMinutes(uint16_t minutes);
 
-//-----------------------------------------------------------------------------------------------------||
-//-----------------------------------------------------------------------------------------------------||
+void reportHeartbeat(TaskId task);
+void signalFatalError(const char *subsystem, const char *message);
+
+#endif

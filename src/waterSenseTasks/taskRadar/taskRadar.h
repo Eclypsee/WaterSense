@@ -8,6 +8,11 @@
  * @copyright Copyright (c) 2023
  * 
  */
- void taskRadar(void* params);
+#ifndef TASK_RADAR_H
+#define TASK_RADAR_H
+
+void taskRadar(void *params);
+
+#endif
 
 

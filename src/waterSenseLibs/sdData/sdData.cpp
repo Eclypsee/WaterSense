@@ -1,208 +1,111 @@
-/**
- * @file sdData.cpp
- * @author Alexander Dunn
- * @version 0.1
- * @date 2022-12-14
- * 
- * @copyright Copyright (c) 2022
- * 
- */
+#include "sdData.h"
 
 #include <Arduino.h>
-#include "sharedData.h"
-#include <SdFat.h>
-#include <utility>
-#include "sdData.h"
+
 SdFat SD;
-/**
- * @brief A constructor for the SD_Data class
- * 
- * @param pin The pin used for the SD chip select
- * @return SD_Data 
- */
-SD_Data :: SD_Data(gpio_num_t pin)
-{
-    // Update CS pin
-    CS = pin;
 
-    //pinMode(LED, OUTPUT);
+SD_Data::SD_Data(gpio_num_t chipSelect) : chipSelect_(chipSelect) {
+}
 
-    // Start SD stuff
-    pinMode(CS, OUTPUT);
-
-    // uint16_t longTimer = millis();
-    uint16_t timer = millis();
-    while (!SD.begin(SD_CS, SD_SCK_MHZ(10)))
-    {
-        // // Restart if more than 10 seconds
-        // if ((millis() - longTimer) > 10000)
-        // {
-        //     assert(false);
-        // }
-
-        // // Blink LED
-        // Serial.println("SD not found, blinking LED");
-        // if ((millis() - timer) > 300)
-        // {
-        //     timer = millis();
-        //     digitalWrite(LED, 1-digitalRead(LED));
-        // }
+bool SD_Data::begin() {
+  pinMode(chipSelect_, OUTPUT);
+  for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
+    if (SD.begin(chipSelect_, SD_SCK_MHZ(10))) {
+      SD.mkdir("/Data");
+      SD.mkdir("/GNSS_Data");
+      return true;
     }
-    //digitalWrite(LED, LOW);
-}
-
-String SD_Data :: getGNSSFilePath() {
-    return GNSSFilePath;
-}
-
-String SD_Data :: getDataFilePath() {
-    return DataFilePath;
-}
-
-/**
- * @brief A method to check and write header files to the SD card
- * 
- */
-void SD_Data :: writeHeader()
-{
-    // Check if file exists and create one if not
-    if (!SD.exists("/README.txt"))
-    {
-        ExFile read_me = SD.open("/README.txt", O_RDWR | O_CREAT | O_TRUNC);
-        if(!read_me) return;
-
-        // Create header with title, timestamp, and column names
-        read_me.println("");
-        read_me.printf(
-            "Cal Poly Tide Sensor Ver. 3, Now With Radar AND BLE :)\n"
-            "https://github.com/Eclypsee/WaterSense\n\n"
-            "Data File format:\n"
-            "UNIX Time (GMT), Distance (mm), External Temp (F), Humidity (%), Battery Voltage (V), Solar Panel Voltage (V)\n"
-            "Current Battery %: %f V\n", battery.get());
-        read_me.close();
-
-        SD.mkdir("/Data");
-    }
-}
-
-/**
- * @brief Open a new file
- * 
- * @param hasFix Whether or not the GPS has a fix
- * @param wakeCounter The number of wake cycles
- * @param time The current unix timestamp
- * @return The opened file
- */
-ExFile SD_Data :: createFile(uint32_t time)
-{
-    String fileName = "/Data/";
-
-    // Filenames are at most 8 characters + 6("/Data/") + 4(".txt") + null terminator = 19
-
-    fileName += String(time, HEX);
-    fileName += ".txt";
-
-    ExFile file = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC);
-    this->DataFilePath = fileName;
-    Serial.println("Asserting file SDTASK");
-    Serial.flush();
-    assert(file);
-    return file;
-}
-
-
-ExFile SD_Data :: createGNSSFile() 
-
-{ 
-  // Create or open a file called "RXM_RAWX.ubx" on the SD card. 
-  // If the file already exists, the new data is appended to the end of the file. 
-
- 
-
-  SD.mkdir("/GNSS_Data"); 
-
-  String fileName = "/GNSS_Data/"; 
-
-  fileName += String(wakeCounter, HEX); 
-
-  fileName += "_"; 
-
-  fileName += String(unixTime.get()); 
-
-  fileName += ".ubx"; 
-  
-  this->GNSSFilePath = fileName;
-
-  ExFile dataFile = SD.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC); 
-
-  if (!dataFile) 
-
-  { 
-
-    Serial.println("Failed to create UBX data file! Freezing..."); 
-
+    Serial.printf("[SD] Initialization attempt %u failed\n", attempt + 1);
+    reportHeartbeat(TaskId::Storage);
+    vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
   }
-  
-  return dataFile;
-
-} 
-
-/**
- * @brief A method to write a log message to the SD card
- * 
- * @param unixTime The unix timestamp
- * @param wakeCounter The number of times the MCU has woken from deep sleep
- * @param latitude The latitude as measured by the GPS
- * @param longitude The longitude as measured by the GPS
- * @param altitude The altitude as measured by the GPS
- */
-void SD_Data :: writeLog(uint32_t unixTime, uint32_t wakeCounter, float latitude, float longitude, float altitude)
-{
-    //Open log file and write to it
-    ExFile logFile = SD.open("/logFile.txt", O_RDWR | O_CREAT | O_TRUNC);
-    if(!logFile) return;
-
-    if (logFile.fileSize() == 0) {
-        logFile.println("Wake Count, UNIX Time (GMT), Latitude (decimal degrees), Longitude (decimal degrees), Altitude (meters above MSL)");
-    }
-    logFile.printf("%u, %u, %0.5f, %0.5f, %0.2f\n", wakeCounter, unixTime, latitude, longitude, altitude);
-    logFile.close();
+  return false;
 }
 
-/**
- * @brief A method to take a write data to the SD card
- * 
- * @param data_file A reference to the data file to be written to
- * @param distance The distance measured by the SONAR sensor
- * @param unixTime The unix timestamp for when the data was recorded
- * @param temperature The current temperature measured by the temperature and humidity sensor
- * @param humidity The current humidity measured by the temperature and humidity sensor
- * @param solarVoltage Voltage of solar panel
- * @return sensorData An object containing all of the data
- */
-void SD_Data :: writeData(ExFile &dataFile, int32_t distance, uint32_t unixTime, float batteryVoltage, float solarVoltage)
-{
-    dataFile.print(unixTime);
-    dataFile.printf(", %d, %0.2f, %0.2f, %0.2f, %0.2f\n", distance, batteryVoltage, solarVoltage);
+bool SD_Data::writeHeader() {
+  if (SD.exists("/README.txt")) {
+    return true;
+  }
+
+  ExFile file = SD.open("/README.txt", O_WRITE | O_CREAT | O_TRUNC);
+  if (!file) {
+    return false;
+  }
+  file.println("WaterSense data");
+  file.println("Measurement CSV columns:");
+  file.println("unix_time,distance_mm,battery_voltage,battery_percent");
+  file.println("GNSS files contain raw UBX RXM-SFRBX and RXM-RAWX messages.");
+  file.close();
+  return true;
 }
 
-/**
- * @brief A method to take a write GNSS data to the SD card
- * 
- * @param data_file A reference to the data file to be written to
- * @param buffer A reference to the block of data to be written to the .ubx file
- */
-void SD_Data :: writeGNSSData(ExFile &dataFile, uint8_t buffer[SIZE])
-{
-    dataFile.write(buffer, SIZE);
+bool SD_Data::createDataFile(ExFile &file, uint32_t unixTime) {
+  close(file);
+  char path[48];
+  snprintf(path, sizeof(path), "/Data/%08lX_%04u.csv",
+           static_cast<unsigned long>(unixTime), dataFileSequence_++);
+  file = SD.open(path, O_WRITE | O_CREAT | O_TRUNC);
+  if (!file) {
+    return false;
+  }
+  file.println("unix_time,distance_mm,battery_voltage,battery_percent");
+  return file.sync();
 }
 
-/**
- * @brief A method to close the current file and put the device to sleep
- * 
- * @param dataFile The file to close
- */
-void SD_Data :: sleep(ExFile &dataFile)
-{
-    dataFile.close();
+bool SD_Data::createGnssFile(ExFile &file, uint32_t unixTime) {
+  close(file);
+  char path[56];
+  snprintf(path, sizeof(path), "/GNSS_Data/%08lX_%04u.ubx",
+           static_cast<unsigned long>(unixTime), gnssFileSequence_++);
+  file = SD.open(path, O_WRITE | O_CREAT | O_TRUNC);
+  return static_cast<bool>(file);
+}
+
+bool SD_Data::writeMeasurement(ExFile &file,
+                               const MeasurementRecord &record) {
+  if (!file) {
+    return false;
+  }
+  file.printf("%lu,%ld,%.3f,%.2f\n",
+              static_cast<unsigned long>(record.unixTime),
+              static_cast<long>(record.distanceMm),
+              static_cast<double>(record.batteryVoltage),
+              static_cast<double>(record.batteryPercent));
+  return file.sync();
+}
+
+bool SD_Data::writeGnssData(ExFile &file, const uint8_t *buffer,
+                            size_t length) {
+  if (!file || !buffer || length == 0) {
+    return false;
+  }
+  const size_t written = file.write(buffer, length);
+  return written == length && file.sync();
+}
+
+bool SD_Data::writeLog(const ClockSnapshot &clock) {
+  ExFile log = SD.open("/logFile.csv", O_WRITE | O_CREAT | O_APPEND);
+  if (!log) {
+    return false;
+  }
+  if (log.fileSize() == 0) {
+    log.println(
+        "wake_count,unix_time,latitude_deg,longitude_deg,altitude_msl_m");
+  }
+  log.printf("%lu,%lu,%.7f,%.7f,%.3f\n",
+             static_cast<unsigned long>(wakeCounter),
+             static_cast<unsigned long>(clock.unixTime),
+             static_cast<double>(clock.latitudeE7) / 10000000.0,
+             static_cast<double>(clock.longitudeE7) / 10000000.0,
+             static_cast<double>(clock.altitudeMslMm) / 1000.0);
+  const bool ok = log.sync();
+  log.close();
+  return ok;
+}
+
+void SD_Data::close(ExFile &file) {
+  if (file) {
+    file.sync();
+    file.close();
+  }
 }

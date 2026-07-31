@@ -1,71 +1,52 @@
-/**
- * @file taskVoltage.cpp
- * @author Evan Lee
- * @brief Main file for the voltage measurement task
- * @version 0.1
- * @date 2023-02-05
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #include <Arduino.h>
-#include "taskVoltage.h"
-#include "setup.h"
-#include "sharedData.h"
+#include <Wire.h>
 #include "Adafruit_MAX1704X.h"
 
+#include "sharedData.h"
+#include "taskVoltage.h"
 
-/**
- * @brief The voltage task
- * @details Checks solar panel voltage and sets duty cycle
- * 
- * @param params A pointer to task parameters
- */
-//MAX17048_I2CADDR_DEFAULT 0x36 ///< MAX17048 default i2c address
-void taskVoltage(void* params)
-{
-  // Task Setup
-  uint8_t state = 0;
-  Adafruit_MAX17048 maxlipo;
-  // Task Loop
-  while (true)
-  {
-    battery.put(4.1);
-    batteryPercent.put(99);
-    
-    voltageCheck.put(true);
-    vTaskDelay(VOLTAGE_PERIOD);
-    // // Measure voltage
-    // if(state==0){
-    //   if(wakeReady.get()){
-    //     Serial.println(F("\nAdafruit MAX17048 simple demo"));
-    //     while (!maxlipo.begin(&Wire)) {
-    //       Serial.println(F("Couldnt find Adafruit MAX17048?\nMake sure a battery is plugged in!"));
-    //       delay(1000);
-    //     }
-    //     Serial.print(F("Found MAX17048"));
-    //     Serial.print(F(" with Chip ID: 0x")); 
-    //     Serial.println(maxlipo.getChipID(), HEX);
-    //     state = 1;
-    //   }
-    // }
-    // if (state == 1)
-    // {
-    //   float cellVoltage = maxlipo.cellVoltage();
-    //   if (isnan(cellVoltage)) {
-    //     Serial.println("Failed to read cell voltage, check battery is connected!");
-    //     delay(2000);
-    //     return;
-    //   }
-    //   Serial.print(F("Batt Voltage: ")); Serial.print(cellVoltage, 3); Serial.println(" V");
-    //   Serial.print(F("Batt Percent: ")); Serial.print(maxlipo.cellPercent(), 1); Serial.println(" %");
-    //   Serial.println();
-    //   battery.put(cellVoltage);
-    //   batteryPercent.put(maxlipo.cellPercent());
-    // }
-    
-    // voltageCheck.put(true);
-    // vTaskDelay(VOLTAGE_PERIOD);
+void taskVoltage(void *) {
+  Adafruit_MAX17048 fuelGauge;
+  bool initialized = false;
+  TickType_t nextInitializationAttempt = 0;
+
+  for (;;) {
+    if (xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST) {
+      xEventGroupSetBits(lifecycleEvents, EVENT_VOLTAGE_STOPPED);
+      reportHeartbeat(TaskId::Voltage);
+      vTaskSuspend(nullptr);
+    }
+
+    if (!initialized && xTaskGetTickCount() >= nextInitializationAttempt) {
+      if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+          pdTRUE) {
+        initialized = fuelGauge.begin(&Wire);
+        xSemaphoreGive(i2cMutex);
+      }
+      if (!initialized) {
+        Serial.println("[Voltage] MAX17048 unavailable; retrying later");
+        nextInitializationAttempt =
+            xTaskGetTickCount() + pdMS_TO_TICKS(30000);
+      }
+    }
+
+    if (initialized) {
+      float voltage = NAN;
+      float percent = NAN;
+      if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+          pdTRUE) {
+        voltage = fuelGauge.cellVoltage();
+        percent = fuelGauge.cellPercent();
+        xSemaphoreGive(i2cMutex);
+      }
+      const bool valid = !isnan(voltage) && !isnan(percent);
+      setBatterySnapshot({voltage, percent, valid});
+      if (!valid) {
+        initialized = false;
+      }
+    }
+
+    reportHeartbeat(TaskId::Voltage);
+    vTaskDelay(pdMS_TO_TICKS(VOLTAGE_PERIOD));
   }
 }

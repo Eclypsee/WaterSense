@@ -1,157 +1,162 @@
-/**
- * @file taskClock.cpp
- * @author Evan Lee
- * @brief Main file for the clock task
- * @version 0.1
- * @date 2023-02-05
- * @copyright Copyright (c) 2023
- */
-
 #include <Arduino.h>
-#include "taskClockGNSS2.h"
-#include "setup.h"
-#include "sharedData.h"
-#include "waterSenseLibs/gpsClock/gpsClock.h"
-#include "waterSenseLibs/zedGNSS/zedGNSS.h"
-#include <Wire.h>
 #include <RTClib.h>
-#include <ESP32Time.h>
+#include <Wire.h>
 
-/**
- * @brief The clock task
- * @details Runs the GPS clock in the background to maintain timestamps
- * 
- * @param params A pointer to task parameters
- */
-void taskClockGNSS2(void* params)
-{
-  GNSS myGNSS = GNSS(SDA, SCL, CLK);
-  uint8_t state = 0;
-  RTC_DS3231 ada_rtc;
-  while (true)
-  {
-    //radarSleepReady.put(true);radarCheck.put(true);//for testing WITHOUT radar
-    #ifndef BLE_on
-      bluetoothSleepReady.put(true);
-      bluetoothCheck.put(true);//for testing without bluetooth
-    #endif
-    // Begin
-    if (state == 0)
-    {
-      while(!ada_rtc.begin(&Wire)){
-        Serial.println("Exernal RTC not found");
-        vTaskDelay(200);
-      }
-      Serial.println("GNSSv2 Wakeup, begin enabling GNSS");
+#include "sharedData.h"
+#include "taskClockGNSS2.h"
+#include "waterSenseLibs/zedGNSS/zedGNSS.h"
 
-      bool gnssOn = false;
-      #ifdef GNSS_ON
-        gnssOn = true;
-      #endif
-
-      long localSolarTime = unixTime.get() + utc_offset;
-      Serial.println("GNSSv2 calculated local solar time");
-      float localHour = fmod((localSolarTime % 86400L) / 3600.0, 24.0);
-      Serial.println("GNSSv2 calculated local hour");
-
-      if (!BluetoothConnected.get() && gnssOn && (wakeCounter == 0 || ((ada_rtc.now().unixtime()-lastFixedUTX) >= 2592000UL && ((localHour >= 6.0 && localHour <= 10.0)))))//check to see if 1 month passed AND GNSS is enabled and its day and BLE disconnected
-      {
-        Serial.println("Initiating Monthly long hour survey");
-        myGNSS.start(); 
-        inLongSurvey.put(1);
-        vTaskDelay(CLOCK_PERIOD);
-        state = 2;
-      }
-      else
-      {
-        Serial.println("Getting Timestamp from internal RTC");
-        inLongSurvey.put(0);
-        vTaskDelay(CLOCK_PERIOD);
-        wakeReady.put(true);
-
-        state = 1;
-      }
+namespace {
+bool beginRtc(RTC_DS3231 &rtc) {
+  for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
+    bool found = false;
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+        pdTRUE) {
+      found = rtc.begin(&Wire);
+      xSemaphoreGive(i2cMutex);
     }
-    else if (state == 1)
-    {
-      unixTime.put(ada_rtc.now().unixtime());
-      displayTime.put(String(ada_rtc.now().unixtime()));
-      clockSleepReady.put(true);
-      sleepTime.put((uint64_t) (READ_TIME.get() * 1000000));
+    if (found) {
+      return true;
     }
-    // Update
-    else if (state == 2 && !BluetoothConnected.get())
-    {
-      vTaskDelay(5000);
-      while(fixType.get() != 1) {
-          //myGNSS.gnss.factoryReset(); // Cold start - clears position data
-          Serial.println("Cold Starting... ");
-          myGNSS.start();
-          clockCheck.put(true);
-          vTaskDelay(5000);
-      }
-      unixTime.put(myGNSS.gnss.getUnixEpoch());
-      myGNSS.setDisplayTime();
-      Serial.println("GNSSv2 2, Unix Time: " + String(myGNSS.gnss.getUnixEpoch()));
-      ada_rtc.adjust(DateTime(myGNSS.gnss.getUnixEpoch()));
-      lastFixedUTX = ada_rtc.now().unixtime();
-      vTaskDelay(500);
-      // wakeReady.put(true);//have wakeready be set by zedgnss.cpp
-      // If sleepFlag is tripped, go to state 3
-      if (sleepFlag.get())
-      {
-        Serial.println("GNSSv2 1 -> 3, sleepFlag ready");
-        latitude.put(myGNSS.gnss.getHighResLatitude());
-        longitude.put(myGNSS.gnss.getHighResLongitude());
-        altitude.put(myGNSS.gnss.getAltitudeMSL() / (int32_t) 1000);
-        state = 3;
-      }
-      myGNSS.getGNSSData();//GET CURRENT GNSSDATA
-      if(utc_offset=0){
-        utc_offset =  3600.0*myGNSS.gnss.getLongitude()/15;
-      }
-    }
-
-    // Sleep
-    else if (state == 3)
-    {
-      //FLUSH REMAINING GNSS DATA/////////////////////////////////////////////////////////////
-      uint16_t maxBufferBytes = myGNSS.gnss.getMaxFileBufferAvail(); // Get how full the file buffer has been (not how full it is now) 
-      if (maxBufferBytes > ((fileBufferSize / 5) * 4)){// Warn the user if fileBufferSize was more than 80% full 
-            Serial.println(F("Warning: the file buffer has been over 80% full. Some data may have been lost."));
-      } 
-      uint16_t remainingBytes = myGNSS.gnss.fileBufferAvailable(); // Check if there are any bytes remaining in the file buffer 
-      while (remainingBytes > 0){ // While there is still data in the file buffer 
-          uint16_t bytesToWrite = remainingBytes; // Write the remaining bytes to SD card sdWriteSize bytes at a time 
-          if (bytesToWrite > sdWriteSize){ 
-              bytesToWrite = sdWriteSize; 
-            }
-          myGNSS.gnss.extractFileBufferData(myBuffer, bytesToWrite); // Extract bytesToWrite bytes from the UBX file buffer and put them into myBuffer 
-        remainingBytes -= bytesToWrite; // Decrement remainingBytes 
-      }
-      ///////////////////////////////////////////////////////////////////////////////////////
-      unixTime.put(myGNSS.gnss.getUnixEpoch());
-      myGNSS.setDisplayTime();
-
-      // Calculate sleep time
-      sleepTime.put((uint64_t) (READ_TIME.get() * 1000000));//after surveying for 20 hours, gnss task sleeps for a bit and wakes up as RTC task
-
-      Serial.println("GNSSv2 3, GPS going to sleep");
-
-      myGNSS.gnss.end();
-      vTaskDelay(500);
-      while(myGNSS.gnss.powerOff(0) != true);//powers off indefinitely until next month
-
-      vTaskDelay(1000);
-
-      clockSleepReady.put(true);
-      state = 4;
-    }
-    if(state == 4) {
-      Serial.println("GNSSv2 4, sleeping ");
-      vTaskDelay(2000);
-    }
-    clockCheck.put(true);
-    vTaskDelay(CLOCK_PERIOD);
+    reportHeartbeat(TaskId::Clock);
+    vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
   }
+  return false;
+}
+
+uint32_t readRtc(RTC_DS3231 &rtc) {
+  uint32_t result = 0;
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+      pdTRUE) {
+    result = rtc.now().unixtime();
+    xSemaphoreGive(i2cMutex);
+  }
+  return result;
+}
+
+bool rtcTimeIsValid(RTC_DS3231 &rtc, uint32_t unixTime) {
+  bool lostPower = true;
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+      pdTRUE) {
+    lostPower = rtc.lostPower();
+    xSemaphoreGive(i2cMutex);
+  }
+  // Reject the DS3231 reset/default era as an operational timestamp.
+  return !lostPower && unixTime >= 1577836800UL;
+}
+
+bool adjustRtc(RTC_DS3231 &rtc, uint32_t unixTime) {
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+      pdTRUE) {
+    return false;
+  }
+  rtc.adjust(DateTime(unixTime));
+  xSemaphoreGive(i2cMutex);
+  return true;
+}
+
+void publishRtcTime(RTC_DS3231 &rtc) {
+  ClockSnapshot snapshot = getClockSnapshot();
+  const uint32_t now = readRtc(rtc);
+  if (now != 0) {
+    snapshot.unixTime = now;
+    setClockSnapshot(snapshot);
+  }
+}
+}  // namespace
+
+void taskClockGNSS2(void *) {
+  RTC_DS3231 rtc;
+  GNSS gnss;
+  const bool rtcAvailable = beginRtc(rtc);
+  const uint32_t rtcUnix = rtcAvailable ? readRtc(rtc) : 0;
+  const bool rtcValid = rtcAvailable && rtcTimeIsValid(rtc, rtcUnix);
+
+  const bool monthElapsed =
+      lastFixedUnix == 0 ||
+      (rtcValid && rtcUnix >= lastFixedUnix &&
+       (rtcUnix - lastFixedUnix) >= GNSS_MONTH_SECONDS);
+
+  bool surveyRequested = false;
+#ifdef GNSS_ON
+  surveyRequested = wakeCounter == 0 || !rtcValid || monthElapsed;
+#endif
+
+  setSurveyMode(surveyRequested ? SurveyMode::GnssRaw : SurveyMode::Normal);
+  ClockSnapshot clock{rtcValid ? rtcUnix : 0, 0, 0, 0, false};
+  setClockSnapshot(clock);
+  // Storage must begin consuming raw buffers while fix acquisition is in
+  // progress. A zero timestamp explicitly means that no valid clock source is
+  // available yet.
+  xEventGroupSetBits(lifecycleEvents, EVENT_CLOCK_READY);
+  bool gnssRunning = false;
+
+  if (surveyRequested) {
+    gnssRunning = gnss.begin();
+    if (!gnssRunning && !rtcValid) {
+      signalFatalError("clock", "neither RTC nor GNSS is available");
+    }
+  }
+
+  if (gnssRunning) {
+    const TickType_t fixDeadline =
+        xTaskGetTickCount() + pdMS_TO_TICKS(FIX_DELAY * 1000UL);
+    do {
+      GnssFix fix{};
+      gnss.poll(fix);
+      gnss.drainFullBuffers();
+      if (fix.valid) {
+        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7,
+                 fix.altitudeMslMm, true};
+        setClockSnapshot(clock);
+        lastFixedUnix = fix.unixTime;
+        if (rtcAvailable) {
+          adjustRtc(rtc, fix.unixTime);
+        }
+        break;
+      }
+      reportHeartbeat(TaskId::Clock);
+      vTaskDelay(pdMS_TO_TICKS(CLOCK_PERIOD));
+    } while (static_cast<int32_t>(fixDeadline - xTaskGetTickCount()) > 0 &&
+             !(xEventGroupGetBits(lifecycleEvents) &
+               EVENT_SHUTDOWN_REQUEST));
+  }
+
+  if (clock.unixTime == 0 && rtcValid) {
+    clock.unixTime = readRtc(rtc);
+  }
+  setClockSnapshot(clock);
+
+  TickType_t lastRtcUpdate = 0;
+  while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST)) {
+    if (gnssRunning) {
+      GnssFix fix{};
+      gnss.poll(fix);
+      gnss.drainFullBuffers();
+      if (fix.valid) {
+        clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7,
+                 fix.altitudeMslMm, true};
+        setClockSnapshot(clock);
+      }
+    } else if (rtcValid &&
+               xTaskGetTickCount() - lastRtcUpdate >= pdMS_TO_TICKS(1000)) {
+      publishRtcTime(rtc);
+      lastRtcUpdate = xTaskGetTickCount();
+    }
+
+    reportHeartbeat(TaskId::Clock);
+    vTaskDelay(pdMS_TO_TICKS(CLOCK_PERIOD));
+  }
+
+  if (gnssRunning) {
+    gnss.flushBuffers();
+  }
+  xEventGroupSetBits(lifecycleEvents, EVENT_GNSS_DONE);
+
+  if (gnssRunning && !gnss.shutdown()) {
+    Serial.println("[GNSS] Receiver did not acknowledge power-off");
+  }
+  xEventGroupSetBits(lifecycleEvents, EVENT_CLOCK_STOPPED);
+  reportHeartbeat(TaskId::Clock);
+  vTaskSuspend(nullptr);
 }

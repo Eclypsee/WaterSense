@@ -1,101 +1,68 @@
-/**
- * @file taskWatch.cpp
- * @author Alexander Dunn
- * @brief Main file for the watchdog task
- * @version 0.1
- * @date 2023-02-13
- * 
- * @copyright Copyright (c) 2023
- * 
- */
-
 #include <Arduino.h>
-#include "taskWatch.h"
-#include "setup.h"
+
 #include "sharedData.h"
+#include "taskWatch.h"
 
+namespace {
+bool taskHasStopped(TaskId task, EventBits_t bits) {
+  switch (task) {
+    case TaskId::Clock:
+      return bits & EVENT_CLOCK_STOPPED;
+    case TaskId::Storage:
+      return bits & EVENT_STORAGE_STOPPED;
+    case TaskId::Radar:
+      return bits & EVENT_RADAR_STOPPED;
+    case TaskId::Voltage:
+      return bits & EVENT_VOLTAGE_STOPPED;
+    case TaskId::Bluetooth:
+      return bits & EVENT_BLUETOOTH_STOPPED;
+    default:
+      return false;
+  }
+}
 
-/**
- * @brief The voltage task
- * @details Checks solar panel voltage and sets duty cycle
- * 
- * @param params A pointer to task parameters
- */
-void taskWatch(void* params)
-{
-  // Task Setup
-  bool clock = false;
-  bool sd = false;
-  bool voltage = false;
-  bool sleep = false;
-  bool measure = false;
-  bool gnss = false;
-  bool bluetooth = false;
+bool taskIsExpected(TaskId task) {
+#ifndef BLE_on
+  if (task == TaskId::Bluetooth) {
+    return false;
+  }
+#endif
+  return task != TaskId::Count;
+}
+}  // namespace
 
-  uint32_t taskTimer = millis();
+void taskWatch(void *) {
+  TickType_t lastSeen[static_cast<size_t>(TaskId::Count)];
+  const TickType_t started = xTaskGetTickCount();
+  for (TickType_t &tick : lastSeen) {
+    tick = started;
+  }
 
-  uint8_t state = 0;
-
-  // Task Loop
-  while (true)
-  {
-    // Begin
-    if (state == 0)
-    {
-        if (wakeReady.get())
-        {
-          taskTimer = millis();
-          state = 1;
-        }
-    }
-
-    // Check Tasks
-    else if (state == 1)
-    {
-      // Check tasks
-      clock = clockCheck.get();
-      sd = sdCheck.get();
-      voltage = voltageCheck.get();
-      sleep = sleepCheck.get();
-      measure = radarCheck.get();
-      bluetooth = bluetoothCheck.get();
-      // If all tasks are good, reset the timer
-      if (clock && sd && voltage && sleep && measure && bluetooth)
-      {
-          // Reset timer
-          taskTimer = millis();
-
-          // Reset checks
-          clockCheck.put(false);
-          sdCheck.put(false);
-          voltageCheck.put(false);
-          sleepCheck.put(false);
-          radarCheck.put(false);
-          bluetoothCheck.put(false);
-      }
-      // Otherwise, check the timer
-      else if ((millis() - taskTimer) > WATCH_TIMER)
-      {
-        Serial.printf("Status - Clock: %s | SD: %s | Voltage: %s | Sleep: %s | Measure: %s | Bluetooth: %s\n",
-          clock ? "true" : "false",
-          sd ? "true" : "false",
-          voltage ? "true" : "false",
-          sleep ? "true" : "false",
-          measure ? "true" : "false",
-          bluetooth ? "true" : "false");
-          state = 2;
+  for (;;) {
+    Heartbeat heartbeat{};
+    if (xQueueReceive(heartbeatQueue, &heartbeat,
+                      pdMS_TO_TICKS(WATCHDOG_PERIOD)) == pdTRUE) {
+      lastSeen[static_cast<size_t>(heartbeat.task)] = heartbeat.tick;
+      while (xQueueReceive(heartbeatQueue, &heartbeat, 0) == pdTRUE) {
+        lastSeen[static_cast<size_t>(heartbeat.task)] = heartbeat.tick;
       }
     }
 
-    // Abort Program
-    else if (state == 2)
-    {
-        Serial.printf("Watchdog Timer Tripped! Time: %s\n", displayTime.get());
+    const TickType_t now = xTaskGetTickCount();
+    const EventBits_t bits = xEventGroupGetBits(lifecycleEvents);
+    for (size_t index = 0; index < static_cast<size_t>(TaskId::Count);
+         ++index) {
+      const TaskId task = static_cast<TaskId>(index);
+      if (!taskIsExpected(task) || taskHasStopped(task, bits)) {
+        continue;
+      }
+      if (now - lastSeen[index] > pdMS_TO_TICKS(WATCH_TIMER)) {
+        Serial.printf("[Watchdog] Task %u missed its heartbeat\n",
+                      static_cast<unsigned>(index));
         Serial.flush();
-        assert(false);
-        state = 0;
+        vTaskDelay(pdMS_TO_TICKS(100));
+        esp_restart();
+      }
     }
-    
-    vTaskDelay(WATCHDOG_PERIOD);
   }
 }

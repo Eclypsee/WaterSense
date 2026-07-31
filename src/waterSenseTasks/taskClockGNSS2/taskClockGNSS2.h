@@ -9,4 +9,9 @@
  * 
  */
 
-void taskClockGNSS2(void* params);
+#ifndef TASK_CLOCK_GNSS_H
+#define TASK_CLOCK_GNSS_H
+
+void taskClockGNSS2(void *params);
+
+#endif

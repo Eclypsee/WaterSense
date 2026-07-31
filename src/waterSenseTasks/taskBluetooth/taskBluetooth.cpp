@@ -1,314 +1,136 @@
-/**
- * @file taskBluetooth.cpp
- * @author Evan Lee
- * @brief Main file for the Bluetooth advertising task
- * @version 0.1
- * @date 2024-01-01
- * 
- * @copyright Copyright (c) 2024
- * 
- */
-
 #include <Arduino.h>
 #include <ArduinoBLE.h>
-#include "taskBluetooth.h"
-#include "setup.h"
+
 #include "sharedData.h"
+#include "taskBluetooth.h"
 #include "waterSenseLibs/bluetooth/bluetooth.h"
 
-// Declare external global instance
-extern BluetoothFileManager bluetoothFileManager;
-
-/**
- * @brief The Bluetooth task
- * @details Advertises for 100ms every 10 seconds (9.9s off, 0.1s on)
- * 
- * Write filelist.txt to SD card, be careful with race conditions
- * 
- * @param params A pointer to task parameters
- */
-void taskBluetooth(void* params)
-{
-
-  // BLE Service and Characteristics (global scope)
-  BLEService dataService("12345678-1234-5678-1234-56789abcdef0");
-  BLEStringCharacteristic fileRequestChar("12345678-1234-5678-1234-56789abcdef2", BLEWrite, 50);
-  BLECharacteristic fileChunkChar("12345678-1234-5678-1234-56789abcdef3", BLENotify, 110);
-  BLEStringCharacteristic checksumChar("12345678-1234-5678-1234-56789abcdef4", BLERead | BLEWrite, 50);
-  BLEStringCharacteristic statusChar("12345678-1234-5678-1234-56789abcdef5", BLENotify, 50);
-  BLEStringCharacteristic bPercentchar("12345678-1234-5678-1234-56789abcdef6", BLENotify, 50);//battery percentage
-  // File transfer variables
-  String requestedFile = "";
-  int offset = 0;
-  uint32_t calculatedChecksum = 0;
-  uint32_t receivedChecksum = 0;
-  bool transferComplete = false;
-  // Task Setup
-  uint8_t state = 0;
-  UBaseType_t originalPriority = uxTaskPriorityGet(NULL);
-
-  // Wait for Serial to be ready
-  vTaskDelay(pdMS_TO_TICKS(2000));
-  Serial.println("Bluetooth task started, awaiting wakeready");
-
-  // Task Loop
-  while (true)
-  {
-      if(state == 0) {
-        if(wakeReady.get()) {
-          writeFinishedSD.put(true);
-          // Reset file transfer state variables
-          offset = 0;
-          requestedFile = "";
-          calculatedChecksum = 0;
-          transferComplete = false;
-
-          // Initialize BLE
-          BLE.begin();
-          
-          // Initialize Bluetooth file manager
-          bluetoothFileManager.begin();
-
-          // Set up BLE advertising
-          BLE.setLocalName("WaterSense");
-          BLE.setAdvertisedServiceUuid("12345678-1234-5678-1234-56789abcdef0");
-          
-          // Add characteristics to the service
-          dataService.addCharacteristic(fileRequestChar);
-          dataService.addCharacteristic(fileChunkChar);
-          dataService.addCharacteristic(checksumChar);
-          dataService.addCharacteristic(statusChar);
-
-          BLE.addService(dataService);
-          
-          // Signal that Bluetooth is always ready to sleep
-          bluetoothSleepReady.put(true);
-
-          Serial.println("Bluetooth task initialized with SD card file transfer interface");
-
-          state = 1;
-        }
-      }
-
-      else if(state == 1) {//ADVERTISE
-        //resume normal SD operations
-        BluetoothConnected.put(false);
-
-        //tell watchdog I am alive
-        bluetoothCheck.put(true);
-        if(sleepFlag.get()){
-          state = 6;
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(BLE_ADVERT_PERIOD));//change this to set how long the gap between advertising is
-
-        // Start advertising
-        BLE.advertise();
-        Serial.println("Bluetooth advertising started");
-        // Check for connection during advertising
-        BLEDevice central = BLE.central();
-        if (central) {
-          Serial.print("Connected to: ");
-          Serial.println(central.address());
-          state = 2;
-          vTaskPrioritySet(NULL, 20); // Increase priority when connected
-          bluetoothSleepReady.put(false); // Prevent sleep while connected
-          BluetoothConnected.put(true);//stop SD operation after writes finished
-          while(writeFinishedSD.get()!=true){
-            vTaskDelay(pdMS_TO_TICKS(20));
-            bluetoothCheck.put(true);
-          }
-          vTaskDelay(pdMS_TO_TICKS(100));//delay a bit to let SD task wrap up. 
-        }
-
-        // Stop advertising after 100ms
-        vTaskDelay(pdMS_TO_TICKS(200));
-        BLE.stopAdvertise();
-        Serial.println("Bluetooth advertising stopped");
-        bluetoothSleepReady.put(true);
-      }
-
-      else if(state == 2) {//CONNECTED
-        if (BLE.connected()) {
-          char bufferp[20];
-          sprintf(bufferp, "%.2f", batteryPercent.get());  
-          bPercentchar.writeValue(bufferp);//send battery percent level
-          // Check for file request
-          if (fileRequestChar.written()) {
-            requestedFile = fileRequestChar.value();
-            offset = 0;
-            transferComplete = false;
-            
-            // Check if client is requesting file list
-            if (requestedFile == "filelist.txt") {
-              Serial.println("File list requested - generating filelist.txt");
-              
-              // Generate the file list
-              if (bluetoothFileManager.generateFileList()) {
-                statusChar.writeValue(String("FILELISTS_MADE ")+FILELIST_COUNT.get());
-              } else {
-                Serial.println("Failed to generate filelist.txt");
-                statusChar.writeValue("FILELISTS_FAILED");
-                state = 5;
-              }
-            } else {
-              // Load the requested file
-              if (bluetoothFileManager.loadFile(requestedFile)) {
-                calculatedChecksum = bluetoothFileManager.getCurrentChecksum();
-                Serial.print("File requested: ");
-                Serial.println(requestedFile);
-                Serial.print("File loaded: ");
-                Serial.print(bluetoothFileManager.getFileData().length());
-                Serial.println(" bytes");
-                Serial.print("Calculated checksum: ");
-                Serial.println(calculatedChecksum);
-                state = 3;
-                bluetoothSleepReady.put(false);
-              } else {
-                Serial.print("Failed to load file: ");
-                statusChar.writeValue("FILE_LOAD_FAILED");
-                Serial.println(requestedFile);
-                state = 5;
-              }
-            }
-          }
-        } else {
-          // Disconnected
-          state = 1;
-          vTaskPrioritySet(NULL, originalPriority); // Restore original priority
-          Serial.println("Bluetooth disconnected - returning to normal priority");
-        }
-      }
-
-      else if(state == 3) {//TRANSFER
-        if (BLE.connected()) {
-          String fileData = bluetoothFileManager.getFileData();
-          
-          if (offset < fileData.length()) {
-            // Send next chunk
-            int chunkSize = (fileData.length() - offset < 100) ? (fileData.length() - offset) : 100;
-            String chunk = fileData.substring(offset, offset + chunkSize);
-            fileChunkChar.writeValue(chunk.c_str());
-            offset += chunkSize;
-            vTaskDelay(pdMS_TO_TICKS(100)); // Throttle notifications
-            bluetoothSleepReady.put(false);
-          } else {
-            // Transfer complete, send checksum for verification
-            Serial.println("Transfer complete. Waiting for checksum verification...");
-            statusChar.writeValue("TRANSFER_COMPLETE");
-            checksumChar.writeValue(String(calculatedChecksum));
-            state = 4;
-          }
-        } else {
-          // Disconnected during transfer
-          Serial.println("Bluetooth disconnected during transfer");
-          
-          // Reset transfer state variables
-          offset = 0;
-          requestedFile = "";
-          calculatedChecksum = 0;
-          transferComplete = false;
-          
-          // Clear loaded file to free memory
-          bluetoothFileManager.clearFile();
-          
-          // Return to advertise state
-          state = 1;
-          vTaskPrioritySet(NULL, originalPriority);
-        }
-      }
-
-      else if(state == 4) {//VERIFY
-        if (BLE.connected()) {
-          // Check if client sent back checksum
-          if (checksumChar.written()) {
-            String checksumStr = checksumChar.value();
-            
-            // Convert string to uint32_t safely
-            char* endPtr;
-            receivedChecksum = strtoul(checksumStr.c_str(), &endPtr, 10);
-            
-            // Check if conversion was successful
-            if (*endPtr == '\0') {
-              Serial.print("Received checksum: ");
-              Serial.println(receivedChecksum);
-              
-              if (receivedChecksum == calculatedChecksum) {
-                Serial.println("Checksum verified! Transfer successful.");
-                statusChar.writeValue("TRANSFER_SUCCESS");
-                transferComplete = true;
-                state = 2;
-              } else {
-                Serial.println("Checksum mismatch! Restarting transfer...");
-                statusChar.writeValue("RETRY_TRANSFER");
-                // Reset for retry
-                offset = 0;
-                requestedFile = "";
-                calculatedChecksum = 0;
-                transferComplete = false;
-                state = 2;
-              }
-            } else {
-              Serial.println("Invalid checksum format received");
-              statusChar.writeValue("RETRY_TRANSFER");
-              // Reset for retry
-              offset = 0;
-              requestedFile = "";
-              calculatedChecksum = 0;
-              transferComplete = false;
-              state = 2;
-            }
-          }
-        } else {
-          Serial.println("Bluetooth disconnected during verify");
-          
-          // Reset transfer state variables
-          offset = 0;
-          requestedFile = "";
-          calculatedChecksum = 0;
-          transferComplete = false;
-          
-          // Clear loaded file to free memory
-          bluetoothFileManager.clearFile();
-          
-          // Return to advertise state
-          state = 1;
-          vTaskPrioritySet(NULL, originalPriority);
-        }
-      }
-
-      else if(state == 5) {//ERROR
-        Serial.println("BLE Error state - sending error message to client");
-        statusChar.writeValue("BLE_ERR");
-        
-        // Reset file transfer state variables
-        requestedFile = "";
-        offset = 0;
-        calculatedChecksum = 0;
-        receivedChecksum = 0;
-        transferComplete = false;
-        
-        // Clear any loaded file
-        bluetoothFileManager.clearFile();
-        
-        // Send error message to client
-        statusChar.writeValue("Error: File transfer failed");
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Wait a bit before returning to connected state
-        state = 2;
-        bluetoothSleepReady.put(false);
-      }
-
-      else if(state == 6) {//SLEEP
-        Serial.println("Bluetooth task sleeping");
-        bluetoothSleepReady.put(true);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-      }
-    
-    
-    // Handle BLE events more frequently for better responsiveness
-    BLE.poll();
-    
-    vTaskDelay(pdMS_TO_TICKS(BLE_POLLING_FREQ));
-    bluetoothCheck.put(true);
+void taskBluetooth(void *) {
+  const EventBits_t startupBits = EVENT_CLOCK_READY | EVENT_STORAGE_READY;
+  while ((xEventGroupGetBits(lifecycleEvents) & startupBits) != startupBits) {
+    if (xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST) {
+      xEventGroupSetBits(lifecycleEvents, EVENT_BLUETOOTH_STOPPED);
+      vTaskSuspend(nullptr);
+    }
+    reportHeartbeat(TaskId::Bluetooth);
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
+
+  BLEService service("12345678-1234-5678-1234-56789abcdef0");
+  BLEStringCharacteristic request(
+      "12345678-1234-5678-1234-56789abcdef2", BLEWrite, 96);
+  BLECharacteristic chunk(
+      "12345678-1234-5678-1234-56789abcdef3", BLENotify, 110);
+  BLEStringCharacteristic checksum(
+      "12345678-1234-5678-1234-56789abcdef4", BLERead | BLEWrite, 50);
+  BLEStringCharacteristic status(
+      "12345678-1234-5678-1234-56789abcdef5", BLENotify, 50);
+  BLEStringCharacteristic batteryPercent(
+      "12345678-1234-5678-1234-56789abcdef6", BLERead | BLENotify, 20);
+
+  if (!BLE.begin() || !bluetoothFileManager.begin()) {
+    signalFatalError("bluetooth", "initialization failed");
+    xEventGroupSetBits(lifecycleEvents, EVENT_BLUETOOTH_STOPPED);
+    vTaskSuspend(nullptr);
+  }
+
+  BLE.setLocalName("WaterSense");
+  BLE.setAdvertisedServiceUuid(service.uuid());
+  service.addCharacteristic(request);
+  service.addCharacteristic(chunk);
+  service.addCharacteristic(checksum);
+  service.addCharacteristic(status);
+  service.addCharacteristic(batteryPercent);
+  BLE.addService(service);
+  BLE.advertise();
+
+  bool transferring = false;
+  bool awaitingChecksum = false;
+  uint32_t expectedChecksum = 0;
+
+  while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST)) {
+    BLE.poll();
+    BLEDevice central = BLE.central();
+    const bool connected = central && central.connected();
+
+    if (!connected) {
+      xEventGroupClearBits(lifecycleEvents, EVENT_BLE_CONNECTED);
+      transferring = false;
+      awaitingChecksum = false;
+      bluetoothFileManager.clearFile();
+      reportHeartbeat(TaskId::Bluetooth);
+      vTaskDelay(pdMS_TO_TICKS(BLE_POLLING_FREQ));
+      continue;
+    }
+
+    xEventGroupSetBits(lifecycleEvents, EVENT_BLE_CONNECTED);
+    const BatterySnapshot battery = getBatterySnapshot();
+    if (battery.valid) {
+      char value[20];
+      snprintf(value, sizeof(value), "%.2f",
+               static_cast<double>(battery.percent));
+      batteryPercent.writeValue(value);
+    }
+
+    if (request.written()) {
+      const String requestedFile = request.value();
+      transferring = false;
+      awaitingChecksum = false;
+      bluetoothFileManager.clearFile();
+
+      if (requestedFile == "filelist.txt") {
+        if (bluetoothFileManager.generateFileList()) {
+          status.writeValue(
+              "FILELISTS_MADE " +
+              String(bluetoothFileManager.getFileListCount()));
+        } else {
+          status.writeValue("FILELISTS_FAILED");
+        }
+      } else if (bluetoothFileManager.loadFile(requestedFile)) {
+        expectedChecksum = bluetoothFileManager.getCurrentChecksum();
+        transferring = true;
+        status.writeValue("TRANSFER_STARTED");
+      } else {
+        status.writeValue("FILE_LOAD_FAILED");
+      }
+    }
+
+    if (transferring) {
+      uint8_t data[100];
+      const size_t length =
+          bluetoothFileManager.readChunk(data, sizeof(data));
+      if (length > 0) {
+        chunk.writeValue(data, length);
+      }
+      if (bluetoothFileManager.transferFinished()) {
+        checksum.writeValue(String(expectedChecksum));
+        status.writeValue("TRANSFER_COMPLETE");
+        transferring = false;
+        awaitingChecksum = true;
+      }
+    } else if (awaitingChecksum && checksum.written()) {
+      char *end = nullptr;
+      const String receivedText = checksum.value();
+      const uint32_t received =
+          strtoul(receivedText.c_str(), &end, 10);
+      if (end && *end == '\0' && received == expectedChecksum) {
+        status.writeValue("TRANSFER_SUCCESS");
+      } else {
+        status.writeValue("CHECKSUM_MISMATCH");
+      }
+      awaitingChecksum = false;
+      bluetoothFileManager.clearFile();
+    }
+
+    reportHeartbeat(TaskId::Bluetooth);
+    vTaskDelay(pdMS_TO_TICKS(BLE_POLLING_FREQ));
+  }
+
+  bluetoothFileManager.clearFile();
+  xEventGroupClearBits(lifecycleEvents, EVENT_BLE_CONNECTED);
+  BLE.stopAdvertise();
+  BLE.end();
+  xEventGroupSetBits(lifecycleEvents, EVENT_BLUETOOTH_STOPPED);
+  reportHeartbeat(TaskId::Bluetooth);
+  vTaskSuspend(nullptr);
 }
