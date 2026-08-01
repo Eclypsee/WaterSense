@@ -41,6 +41,10 @@ struct ClockSnapshot {
   int32_t altitudeMslMm;
   bool positionValid;
 };
+struct BatteryHistory {
+  float percent;
+  uint32_t unixTime;
+};
 
 struct BatterySnapshot {
   float voltage;
@@ -78,6 +82,7 @@ struct Heartbeat {
 extern RTC_DATA_ATTR uint32_t wakeCounter;
 extern RTC_DATA_ATTR uint32_t lastFixedUnix;
 extern RTC_DATA_ATTR float previousBatteryPercent;
+extern RTC_DATA_ATTR uint32_t previousBatteryUnix;
 
 extern EventGroupHandle_t lifecycleEvents;
 extern QueueHandle_t measurementQueue;
@@ -93,13 +98,10 @@ bool sharedDataBegin();
 ClockSnapshot getClockSnapshot();
 void setClockSnapshot(const ClockSnapshot &snapshot);
 BatterySnapshot getBatterySnapshot();
+BatteryHistory getBatteryHistory();
 void setBatterySnapshot(const BatterySnapshot &snapshot);
 SurveyMode getSurveyMode();
 void setSurveyMode(SurveyMode mode);
-uint32_t getReadTimeSeconds();
-void setReadTimeSeconds(uint32_t seconds);
-uint16_t getAlignmentMinutes();
-void setAlignmentMinutes(uint16_t minutes);
 
 void reportHeartbeat(TaskId task);
 void signalFatalError(const char *subsystem, const char *message);

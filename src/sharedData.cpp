@@ -1,10 +1,13 @@
 #include "sharedData.h"
 
 #include <cmath>
+#include <time.h>
+#include <cmath>
 
 RTC_DATA_ATTR uint32_t wakeCounter = 0;
 RTC_DATA_ATTR uint32_t lastFixedUnix = 0;
 RTC_DATA_ATTR float previousBatteryPercent = NAN;
+RTC_DATA_ATTR uint32_t previousBatteryUnix = 0;
 
 EventGroupHandle_t lifecycleEvents = nullptr;
 QueueHandle_t measurementQueue = nullptr;
@@ -19,8 +22,6 @@ namespace {
 ClockSnapshot clockState{0, 0, 0, 0, false};
 BatterySnapshot batteryState{NAN, NAN, false};
 SurveyMode surveyMode = SurveyMode::Unknown;
-uint32_t readTimeSeconds = HI_READ;
-uint16_t alignmentMinutes = HI_ALLIGN;
 GnssBuffer gnssBuffers[GNSS_BUFFER_COUNT];
 
 template <typename Function>
@@ -86,9 +87,20 @@ BatterySnapshot getBatterySnapshot() {
   withStateLock([&] { copy = batteryState; });
   return copy;
 }
+BatteryHistory getBatteryHistory(){
+  BatteryHistory copy{NAN, 0};
+  withStateLock([&] { copy = {previousBatteryPercent,previousBatteryUnix};});
+  return copy;
+}
 
 void setBatterySnapshot(const BatterySnapshot &snapshot) {
-  if (!withStateLock([&] { batteryState = snapshot; })) {
+  if (!withStateLock([&] { 
+    batteryState = snapshot; 
+    if (snapshot.valid && std::isfinite(snapshot.percent)) {
+            previousBatteryPercent = snapshot.percent;
+            previousBatteryUnix = static_cast<uint32_t>(time(nullptr));
+    }
+  })) {
     signalFatalError("shared state", "battery state mutex timeout");
   }
 }
@@ -105,26 +117,6 @@ void setSurveyMode(SurveyMode mode) {
   }
 }
 
-uint32_t getReadTimeSeconds() {
-  uint32_t copy = HI_READ;
-  withStateLock([&] { copy = readTimeSeconds; });
-  return copy;
-}
-
-void setReadTimeSeconds(uint32_t seconds) {
-  withStateLock([&] { readTimeSeconds = seconds; });
-}
-
-uint16_t getAlignmentMinutes() {
-  uint16_t copy = HI_ALLIGN;
-  withStateLock([&] { copy = alignmentMinutes; });
-  return copy;
-}
-
-void setAlignmentMinutes(uint16_t minutes) {
-  withStateLock([&] { alignmentMinutes = minutes; });
-}
-
 void reportHeartbeat(TaskId task) {
   if (!heartbeatQueue) {
     return;
@@ -136,7 +128,6 @@ void reportHeartbeat(TaskId task) {
 void signalFatalError(const char *subsystem, const char *message) {
   Serial.printf("[FATAL][%s] %s\n", subsystem, message);
   if (lifecycleEvents) {
-    xEventGroupSetBits(lifecycleEvents, EVENT_FATAL_ERROR |
-                                       EVENT_SHUTDOWN_REQUEST);
+    xEventGroupSetBits(lifecycleEvents, EVENT_FATAL_ERROR | EVENT_SHUTDOWN_REQUEST);
   }
 }

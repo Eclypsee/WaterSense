@@ -1,12 +1,26 @@
 #include <Arduino.h>
 #include <RTClib.h>
 #include <Wire.h>
+#include <sys/time.h>
+#include <cstdlib>
 
 #include "sharedData.h"
 #include "taskClockGNSS2.h"
 #include "waterSenseLibs/zedGNSS/zedGNSS.h"
 
 namespace {
+bool setSystemUnixTime(uint32_t unixTime) {
+  if (unixTime < 1577836800UL)return false;
+  timeval tv{};
+  tv.tv_sec = static_cast<time_t>(unixTime);
+  tv.tv_usec = 0;
+  if(settimeofday(&tv, nullptr) == 0){
+    return true;
+  }
+  Serial.println("[Clock] Failed to set system ESP32 time");
+  return false;
+}
+
 bool beginRtc(RTC_DS3231 &rtc) {
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     bool found = false;
@@ -56,28 +70,17 @@ bool adjustRtc(RTC_DS3231 &rtc, uint32_t unixTime) {
   xSemaphoreGive(i2cMutex);
   return true;
 }
-
-void publishRtcTime(RTC_DS3231 &rtc) {
-  ClockSnapshot snapshot = getClockSnapshot();
-  const uint32_t now = readRtc(rtc);
-  if (now != 0) {
-    snapshot.unixTime = now;
-    setClockSnapshot(snapshot);
-  }
-}
 }  // namespace
 
 void taskClockGNSS2(void *) {
   RTC_DS3231 rtc;
   GNSS gnss;
-  const bool rtcAvailable = beginRtc(rtc);
-  const uint32_t rtcUnix = rtcAvailable ? readRtc(rtc) : 0;
-  const bool rtcValid = rtcAvailable && rtcTimeIsValid(rtc, rtcUnix);
+  bool rtcAvailable = beginRtc(rtc);
+  uint32_t rtcUnix = rtcAvailable ? readRtc(rtc) : 0;
+  bool rtcValid = rtcAvailable && rtcTimeIsValid(rtc, rtcUnix);
+  if(rtcValid)setSystemUnixTime(rtcUnix);
 
-  const bool monthElapsed =
-      lastFixedUnix == 0 ||
-      (rtcValid && rtcUnix >= lastFixedUnix &&
-       (rtcUnix - lastFixedUnix) >= GNSS_MONTH_SECONDS);
+  const bool monthElapsed = lastFixedUnix == 0 || (rtcValid && rtcUnix >= lastFixedUnix && (rtcUnix - lastFixedUnix) >= GNSS_MONTH_SECONDS);
 
   bool surveyRequested = false;
 #ifdef GNSS_ON
@@ -100,7 +103,7 @@ void taskClockGNSS2(void *) {
     }
   }
 
-  if (gnssRunning) {
+  if (gnssRunning) {//wait for first fix
     const TickType_t fixDeadline = xTaskGetTickCount() + pdMS_TO_TICKS(FIX_DELAY * 1000UL);
     do {
       GnssFix fix{};
@@ -110,8 +113,10 @@ void taskClockGNSS2(void *) {
         clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7, fix.altitudeMslMm, true};
         setClockSnapshot(clock);
         lastFixedUnix = fix.unixTime;
-        if (rtcAvailable) {
-          adjustRtc(rtc, fix.unixTime);
+        setSystemUnixTime(lastFixedUnix);
+        if (rtcAvailable && adjustRtc(rtc, fix.unixTime)) {
+          rtcUnix = fix.unixTime;
+          rtcValid = true;
         }
         break;
       }
@@ -136,10 +141,32 @@ void taskClockGNSS2(void *) {
         clock = {fix.unixTime, fix.latitudeE7, fix.longitudeE7, fix.altitudeMslMm, true};
         setClockSnapshot(clock);
         fixValid = true;
+
+        const time_t systemNow = time(nullptr);
+        const int64_t error = static_cast<int64_t>(fix.unixTime) - static_cast<int64_t>(systemNow);
+        if (std::llabs(error) > 2) {
+          setSystemUnixTime(fix.unixTime);
+        }
       }
-    } 
-    if (!fixValid && rtcValid && xTaskGetTickCount() - lastRtcUpdate >= pdMS_TO_TICKS(1000)) {
-      publishRtcTime(rtc);
+    }else if (!rtcAvailable) {
+      rtcAvailable = beginRtc(rtc);
+      if (rtcAvailable) {
+        rtcUnix = readRtc(rtc);
+        rtcValid = rtcTimeIsValid(rtc, rtcUnix);
+        if (rtcValid) {
+          setSystemUnixTime(rtcUnix);
+          clock.unixTime = rtcUnix;
+          setClockSnapshot(clock);
+        }
+      }
+    }
+    if (!fixValid && rtcAvailable && xTaskGetTickCount() - lastRtcUpdate >= pdMS_TO_TICKS(1000)) {
+      rtcUnix = readRtc(rtc);
+      rtcValid = rtcTimeIsValid(rtc, rtcUnix);
+      if (rtcValid) {
+        clock.unixTime = rtcUnix;
+        setClockSnapshot(clock);
+      }
       lastRtcUpdate = xTaskGetTickCount();
     }
 

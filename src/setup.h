@@ -2,12 +2,12 @@
 #define WATERSENSE_SETUP_H
 
 //configuratoin and pins
-constexpr float LOW_BATTERY_PERCENT = 10.0f;
+#define LOW_BATTERY_PERCENT 10.0f
 #define GNSS_EN_PIN 21
 #define RADAR_WAKE_PIN 22
-constexpr uint8_t MAX_SAMPLES = 16;//maximum amount of samples the radar gets before doing a median and sending it to log
-constexpr uint32_t minimumRangeMm = 1000;
-constexpr uint32_t maximumRangeMm = 13000;
+#define MAX_SAMPLES 16//maximum amount of samples the radar gets before doing a median and sending it to log
+#define MIN_RANGE_MM 1000
+#define MAX_RANGE_MM 13000
 
 // Optional subsystems and operating modes.
 #define DEBUG_DISABLE_SD
@@ -29,11 +29,11 @@ constexpr uint32_t maximumRangeMm = 13000;
 #define sdWriteSize 8192
 
 // Measurement and sleep cadence.
-#define HI_READ (5UL * 60UL)
-#define HI_ALLIGN 10
+#define READ_TIME_S  (5UL * 60UL)
+#define SLEEP_ALIGN_MIN 10UL//sleep alligns to wake the esp on ever x min to the hour. ie 1pm, 1:10pm, 1:20pm, regardless of wake time
 #define GNSS_READ_TIME (8UL * 60UL * 60UL)
 #define GNSS_MONTH_SECONDS (30UL * 24UL * 60UL * 60UL)
-#define FIX_DELAY (2UL * 60UL)
+#define FIX_DELAY (3UL * 60UL)
 
 // Task service periods, expressed in milliseconds.
 #define SD_PERIOD 10

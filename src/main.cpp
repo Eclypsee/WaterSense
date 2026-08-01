@@ -41,6 +41,8 @@ void setup() {
   ESP_ERROR_CHECK(gpio_hold_dis(radarPin));
   gpio_deep_sleep_hold_dis();
 
+  Serial.printf("FreeRTOS Tick period = %u ms\n", portTICK_PERIOD_MS);
+  Serial.printf("FreeRTOS TickType_t size = %u bytes\n", sizeof(TickType_t));
   
   if (!sharedDataBegin()) {
     Serial.println("[FATAL] Unable to allocate FreeRTOS synchronization objects");
@@ -48,8 +50,6 @@ void setup() {
     esp_restart();
   }
 
-  setReadTimeSeconds(HI_READ);
-  setAlignmentMinutes(HI_ALLIGN);
   Wire.begin(SDA, SCL, CLK);
 
   #ifdef DEBUG_I2C_SCAN

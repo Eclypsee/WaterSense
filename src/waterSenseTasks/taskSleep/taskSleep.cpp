@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "driver/gpio.h"
+#include <time.h>
 
 #include "sharedData.h"
 #include "taskSleep.h"
@@ -12,8 +13,20 @@ bool waitWithHeartbeat(uint32_t durationSeconds) {
       return false;
     }
     const BatterySnapshot battery = getBatterySnapshot();
-    if (battery.valid && battery.percent <= LOW_BATTERY_PERCENT) {
+    const BatteryHistory hist = getBatteryHistory();
+    const time_t now = time(nullptr);
+    if (battery.valid && isfinite(battery.percent) && battery.percent <= LOW_BATTERY_PERCENT) {
       Serial.printf("[Power] Low battery: %.1f%%; shutting down early\n", battery.percent);
+      return false;
+    }
+    const bool historyRecent =
+        !battery.valid &&
+        isfinite(hist.percent) &&
+        hist.unixTime >= 1700000000UL &&
+        now >= static_cast<time_t>(hist.unixTime) &&
+        static_cast<uint64_t>(now - static_cast<time_t>(hist.unixTime)) <= 2ULL;
+    if (historyRecent && hist.percent <= LOW_BATTERY_PERCENT) {
+      Serial.printf("[Power] Low battery fallback: %.1f%%; shutting down early\n", hist.percent);
       return false;
     }
     reportHeartbeat(TaskId::Sleep);
@@ -21,6 +34,20 @@ bool waitWithHeartbeat(uint32_t durationSeconds) {
   }
   return true;
 }
+
+uint64_t getAlignedSleepUs() {
+  const time_t now = time(nullptr);
+  const uint32_t intervalSeconds = SLEEP_ALIGN_MIN  * 60UL;
+  static_assert(intervalSeconds > 0, "SLEEP_ALIGN_MIN must be greater than zero");
+  if (now < 1700000000) {
+    Serial.println("[Power] Clock invalid; using alignment interval for sleep");
+    return static_cast<uint64_t>(intervalSeconds) * 1000000ULL;
+  }
+  const uint32_t sleepSec = intervalSeconds - (static_cast<uint64_t>(now) % intervalSeconds);
+
+  return static_cast<uint64_t>(sleepSec) * 1000000ULL;
+}
+
 }  // namespace
 
 void taskSleep(void *) {
@@ -36,8 +63,7 @@ void taskSleep(void *) {
 
   ++wakeCounter;
   const SurveyMode mode = getSurveyMode();
-  const uint32_t activeSeconds =
-      mode == SurveyMode::GnssRaw ? GNSS_READ_TIME : getReadTimeSeconds();
+  const uint32_t activeSeconds = mode == SurveyMode::GnssRaw ? GNSS_READ_TIME : READ_TIME_S;
 
 #ifdef CONTINUOUS
   Serial.println("[Power] Continuous mode: deep sleep disabled");
@@ -46,17 +72,14 @@ void taskSleep(void *) {
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 #else
-  waitWithHeartbeat(activeSeconds);
+  const bool completedActiveWindow = waitWithHeartbeat(activeSeconds);
+  if (!completedActiveWindow) Serial.println("[Power] Active window ended early");
   xEventGroupSetBits(lifecycleEvents, EVENT_SHUTDOWN_REQUEST);
 
-  const TickType_t shutdownDeadline =
-      xTaskGetTickCount() + pdMS_TO_TICKS(SHUTDOWN_TIMEOUT_MS);
-  while ((xEventGroupGetBits(lifecycleEvents) & EVENT_ALL_STOPPED) !=
-         EVENT_ALL_STOPPED) {
+  const TickType_t shutdownDeadline = xTaskGetTickCount() + pdMS_TO_TICKS(SHUTDOWN_TIMEOUT_MS);
+  while ((xEventGroupGetBits(lifecycleEvents) & EVENT_ALL_STOPPED) != EVENT_ALL_STOPPED) {
     if (static_cast<int32_t>(shutdownDeadline - xTaskGetTickCount()) <= 0) {
-      Serial.printf("[Power] Shutdown timed out; event bits: 0x%08lx\n",
-                    static_cast<unsigned long>(
-                        xEventGroupGetBits(lifecycleEvents)));
+      Serial.printf("[Power] Shutdown timed out; event bits: 0x%08lx\n", static_cast<unsigned long>(xEventGroupGetBits(lifecycleEvents)));
       vTaskDelay(pdMS_TO_TICKS(100));
       esp_restart();
     }
@@ -64,17 +87,7 @@ void taskSleep(void *) {
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 
-  const BatterySnapshot battery = getBatterySnapshot();
-  if (battery.valid) {
-    previousBatteryPercent = battery.percent;
-  }
-
-  const uint64_t requestedSleepUs =
-      static_cast<uint64_t>(getReadTimeSeconds()) * 1000000ULL;
-  const uint64_t alignmentCapUs =
-      static_cast<uint64_t>(getAlignmentMinutes()) * 60ULL * 1000000ULL;
-  const uint64_t sleepUs =
-      requestedSleepUs > alignmentCapUs ? alignmentCapUs : requestedSleepUs;
+  const uint64_t sleepUs = getAlignedSleepUs();
 
   const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
   const gpio_num_t radarPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);

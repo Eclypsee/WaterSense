@@ -32,7 +32,7 @@ void taskRadar(void *) {
       if(radarFound) Serial.printf("[RADAR] Found on attempt %u\n", attempt + 1);
       initialized =
           radarFound &&
-          radar.distanceSetup(minimumRangeMm, maximumRangeMm) == 0;
+          radar.distanceSetup(MIN_RANGE_MM, MAX_RANGE_MM) == 0;
       if (initialized) {
         Serial.printf("[RADAR] Initialized on attempt %u\n", attempt + 1);
         radar.setCloseRangeLeakageCancellation(true);
@@ -73,7 +73,7 @@ void taskRadar(void *) {
         if (radar.getNumberDistances(count) == ksfTkErrOk) {
           for (uint32_t index = 0; index < count; ++index) {
             uint32_t distanceMm = 0;
-            if (radar.getPeakDistance(index, distanceMm) == ksfTkErrOk && distanceMm >= minimumRangeMm && distanceMm <= maximumRangeMm && distanceMm > furthestMm) {
+            if (radar.getPeakDistance(index, distanceMm) == ksfTkErrOk && distanceMm >= MIN_RANGE_MM && distanceMm <= MAX_RANGE_MM && distanceMm > furthestMm) {
               furthestMm = distanceMm;
             }
           }
