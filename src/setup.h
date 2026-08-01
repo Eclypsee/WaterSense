@@ -4,10 +4,15 @@
 //configuratoin and pins
 constexpr float LOW_BATTERY_PERCENT = 10.0f;
 #define GNSS_EN_PIN 21
+#define RADAR_WAKE_PIN 22
 constexpr uint8_t MAX_SAMPLES = 16;//maximum amount of samples the radar gets before doing a median and sending it to log
+constexpr uint32_t minimumRangeMm = 1000;
+constexpr uint32_t maximumRangeMm = 13000;
+
 // Optional subsystems and operating modes.
 #define DEBUG_DISABLE_SD
 #define DEBUG_DISABLE_RADAR
+#define DEBUG_I2C_SCAN
 // #define GNSS_ON
 // #define BLE_on
 // #define CONTINUOUS

@@ -19,8 +19,6 @@ void taskRadar(void *) {
 
   SparkFunXM125Distance radar;
   constexpr uint8_t address = SFE_XM125_I2C_ADDRESS;
-  constexpr uint32_t minimumRangeMm = 1000;
-  constexpr uint32_t maximumRangeMm = 13000;
   bool initialized = false;
 
   //getting the median of MAX_SAMPLES values
@@ -29,10 +27,11 @@ void taskRadar(void *) {
   TickType_t lastPublish = xTaskGetTickCount();
 
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
-        pdTRUE) {
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
+      bool radarFound = radar.begin(address, Wire);
+      if(radarFound) Serial.printf("[RADAR] Found on attempt %u\n", attempt + 1);
       initialized =
-          radar.begin(address, Wire) == 1 &&
+          radarFound &&
           radar.distanceSetup(minimumRangeMm, maximumRangeMm) == 0;
       if (initialized) {
         Serial.printf("[RADAR] Initialized on attempt %u\n", attempt + 1);
@@ -74,8 +73,7 @@ void taskRadar(void *) {
         if (radar.getNumberDistances(count) == ksfTkErrOk) {
           for (uint32_t index = 0; index < count; ++index) {
             uint32_t distanceMm = 0;
-            if (radar.getPeakDistance(index, distanceMm) == ksfTkErrOk &&
-                distanceMm > furthestMm) {
+            if (radar.getPeakDistance(index, distanceMm) == ksfTkErrOk && distanceMm >= minimumRangeMm && distanceMm <= maximumRangeMm && distanceMm > furthestMm) {
               furthestMm = distanceMm;
             }
           }
