@@ -6,8 +6,8 @@
 
 RTC_DATA_ATTR uint32_t wakeCounter = 0;
 RTC_DATA_ATTR uint32_t lastFixedUnix = 0;
-RTC_DATA_ATTR float previousBatteryPercent = NAN;
-RTC_DATA_ATTR uint32_t previousBatteryUnix = 0;
+RTC_DATA_ATTR float lastValidBatteryPercent = NAN;
+RTC_DATA_ATTR uint32_t lastValidBatteryUnix = 0;
 
 EventGroupHandle_t lifecycleEvents = nullptr;
 QueueHandle_t measurementQueue = nullptr;
@@ -89,7 +89,7 @@ BatterySnapshot getBatterySnapshot() {
 }
 BatteryHistory getBatteryHistory(){
   BatteryHistory copy{NAN, 0};
-  withStateLock([&] { copy = {previousBatteryPercent,previousBatteryUnix};});
+  withStateLock([&] { copy = {lastValidBatteryPercent,lastValidBatteryUnix};});
   return copy;
 }
 
@@ -97,8 +97,8 @@ void setBatterySnapshot(const BatterySnapshot &snapshot) {
   if (!withStateLock([&] { 
     batteryState = snapshot; 
     if (snapshot.valid && std::isfinite(snapshot.percent)) {
-            previousBatteryPercent = snapshot.percent;
-            previousBatteryUnix = static_cast<uint32_t>(time(nullptr));
+            lastValidBatteryPercent = snapshot.percent;
+            lastValidBatteryUnix = static_cast<uint32_t>(time(nullptr));
     }
   })) {
     signalFatalError("shared state", "battery state mutex timeout");

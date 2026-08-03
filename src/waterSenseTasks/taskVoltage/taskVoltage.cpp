@@ -43,6 +43,7 @@ void taskVoltage(void *) {
       const bool valid = !isnan(voltage) && !isnan(percent) && voltage >= 2.0f && voltage <= 5.0f && percent >= 1.0f && percent <= 100.0f;
       if(valid){
         setBatterySnapshot({voltage, percent, valid});
+        xEventGroupSetBits(lifecycleEvents, EVENT_VOLTAGE_READY);
         invalidReadCount=0;
       }else{
         ++invalidReadCount;

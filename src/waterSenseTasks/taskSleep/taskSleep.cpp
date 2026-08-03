@@ -12,6 +12,7 @@ bool waitWithHeartbeat(uint32_t durationSeconds) {
     if (xEventGroupGetBits(lifecycleEvents) & EVENT_FATAL_ERROR) {
       return false;
     }
+    #ifndef DEBUG_NO_BATTERY
     const BatterySnapshot battery = getBatterySnapshot();
     const BatteryHistory hist = getBatteryHistory();
     const time_t now = time(nullptr);
@@ -29,6 +30,7 @@ bool waitWithHeartbeat(uint32_t durationSeconds) {
       Serial.printf("[Power] Low battery fallback: %.1f%%; shutting down early\n", hist.percent);
       return false;
     }
+    #endif
     reportHeartbeat(TaskId::Sleep);
     vTaskDelay(pdMS_TO_TICKS(500));
   }

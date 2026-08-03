@@ -36,6 +36,10 @@ void taskRadar(void *) {
       if (initialized) {
         Serial.printf("[RADAR] Initialized on attempt %u\n", attempt + 1);
         radar.setCloseRangeLeakageCancellation(true);
+        radar.setReflectorShape(XM125_DISTANCE_PLANAR);
+        radar.setThresholdMethod(XM125_DISTANCE_CFAR);
+        radar.setPeakSorting(XM125_DISTANCE_STRONGEST);
+        radar.setSignalQuality(sfe_xm125_distance_signal_quality_default);
       }
       xSemaphoreGive(i2cMutex);
     }

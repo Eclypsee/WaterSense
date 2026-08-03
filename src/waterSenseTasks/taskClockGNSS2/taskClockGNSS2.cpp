@@ -101,6 +101,8 @@ void taskClockGNSS2(void *) {
     if (!gnssRunning && !rtcValid) {
       signalFatalError("clock", "neither RTC nor GNSS is available");
     }
+  }else{
+    gnss.beginIdle();
   }
 
   if (gnssRunning) {//wait for first fix

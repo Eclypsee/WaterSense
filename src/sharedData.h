@@ -22,6 +22,7 @@ constexpr EventBits_t EVENT_GNSS_DONE         = BIT7;
 constexpr EventBits_t EVENT_BLE_CONNECTED     = BIT8;
 constexpr EventBits_t EVENT_FATAL_ERROR       = BIT9;
 constexpr EventBits_t EVENT_VOLTAGE_STOPPED   = BIT10;
+constexpr EventBits_t EVENT_VOLTAGE_READY     = BIT11;
 
 constexpr EventBits_t EVENT_ALL_STOPPED =
     EVENT_CLOCK_STOPPED | EVENT_STORAGE_STOPPED |
@@ -81,8 +82,8 @@ struct Heartbeat {
 
 extern RTC_DATA_ATTR uint32_t wakeCounter;
 extern RTC_DATA_ATTR uint32_t lastFixedUnix;
-extern RTC_DATA_ATTR float previousBatteryPercent;
-extern RTC_DATA_ATTR uint32_t previousBatteryUnix;
+extern RTC_DATA_ATTR float lastValidBatteryPercent;
+extern RTC_DATA_ATTR uint32_t lastValidBatteryUnix;
 
 extern EventGroupHandle_t lifecycleEvents;
 extern QueueHandle_t measurementQueue;

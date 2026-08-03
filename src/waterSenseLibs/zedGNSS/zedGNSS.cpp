@@ -15,6 +15,32 @@ void onRawx(UBX_RXM_RAWX_data_t *) {
 }
 }  // namespace
 
+bool GNSS::beginIdle(){
+  device_.setFileBufferSize(fileBufferSize);
+  bool connected = false;
+  for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+        pdTRUE) {
+      connected = device_.begin(Wire, 0x42);
+      xSemaphoreGive(i2cMutex);
+    }
+    if (connected) {
+      Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
+      break;
+    }
+    Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
+    vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
+  }
+  if (!connected)return false;
+
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE)return false;
+  device_.logRXMSFRBX(false);
+  device_.logRXMRAWX(false);
+  device_.softwareEnableGNSS(false);
+  xSemaphoreGive(i2cMutex);
+  return true;
+}
+
 bool GNSS::begin() {
   device_.setFileBufferSize(fileBufferSize);
 
@@ -161,5 +187,6 @@ bool GNSS::shutdown() {
   device_.end();
   xSemaphoreGive(i2cMutex);
   initialized_ = false;
+  if(poweredOff){Serial.println("[GNSS] Receiver shut down successfully");}else{Serial.println("[GNSS] Receiver failed to shut down");}
   return poweredOff;
 }
