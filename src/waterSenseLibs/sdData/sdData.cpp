@@ -4,13 +4,28 @@
 
 SdFat SD;
 
-SD_Data::SD_Data(gpio_num_t chipSelect) : chipSelect_(chipSelect) {
+SD_Data::SD_Data(gpio_num_t chipSelect,
+                 gpio_num_t sck,
+                 gpio_num_t miso,
+                 gpio_num_t mosi)
+    : chipSelect_(chipSelect),
+      sdck_(sck),
+      sdmiso_(miso),
+      sdmosi_(mosi) {
 }
 
 bool SD_Data::begin() {
   pinMode(chipSelect_, OUTPUT);
+  SPI.begin(sdck_, sdmiso_, sdmosi_, chipSelect_);
+  SdSpiConfig config(
+    chipSelect_,
+    SHARED_SPI | USER_SPI_BEGIN,
+    SD_SCK_MHZ(10),
+    &SPI
+  );
+
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
-    if (SD.begin(chipSelect_, SD_SCK_MHZ(10))) {
+    if (SD.begin(config)) {
       SD.mkdir("/Data");
       SD.mkdir("/GNSS_Data");
       return true;

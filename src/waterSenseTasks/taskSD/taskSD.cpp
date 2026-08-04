@@ -17,7 +17,7 @@ void taskSD(void *) {
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 
-  SD_Data storage(SD_CS);
+  SD_Data storage(SD_CS, SD_SCK, SD_MISO, SD_MOSI);
   ExFile measurementFile;
   ExFile gnssFile;
 

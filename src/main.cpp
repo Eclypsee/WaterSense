@@ -51,7 +51,7 @@ void setup() {
   }
 
   Wire.begin(SDA, SCL, CLK);
-
+  Wire1.begin(33,32,CLK);
   #ifdef DEBUG_I2C_SCAN
   for (uint8_t addr = 1; addr < 127; addr++) {
       Wire.beginTransmission(addr);

@@ -9,7 +9,10 @@ extern SdFat SD;
 
 class SD_Data {
  public:
-  explicit SD_Data(gpio_num_t chipSelect);
+  explicit SD_Data(gpio_num_t chipSelect,
+          gpio_num_t sck,
+          gpio_num_t miso,
+          gpio_num_t mosi);
 
   bool begin();
   bool writeHeader();
@@ -22,6 +25,9 @@ class SD_Data {
 
  private:
   gpio_num_t chipSelect_;
+  gpio_num_t sdck_;
+  gpio_num_t sdmiso_;
+  gpio_num_t sdmosi_;
   uint16_t dataFileSequence_ = 0;
   uint16_t gnssFileSequence_ = 0;
 };
