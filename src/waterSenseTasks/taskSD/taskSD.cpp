@@ -13,6 +13,11 @@ bool lockSd() {
 
 void taskSD(void *) {
   while (!(xEventGroupGetBits(lifecycleEvents) & EVENT_CLOCK_READY)) {
+    if (xEventGroupGetBits(lifecycleEvents) & EVENT_SHUTDOWN_REQUEST) {
+      xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);
+      reportHeartbeat(TaskId::Storage);
+      vTaskSuspend(nullptr);
+    }
     reportHeartbeat(TaskId::Storage);
     vTaskDelay(pdMS_TO_TICKS(100));
   }
