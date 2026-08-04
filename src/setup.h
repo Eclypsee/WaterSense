@@ -10,11 +10,12 @@
 #define MAX_RANGE_MM 13000
 
 // Optional subsystems and operating modes.
+#define MIN_VALID_UNIX_TIME 1577836800UL
 #define DEBUG_NO_BATTERY
 // #define DEBUG_DISABLE_SD
 // #define DEBUG_DISABLE_RADAR
 // #define DEBUG_I2C_SCAN
-// #define GNSS_ON
+#define GNSS_ON
 // #define BLE_on
 // #define CONTINUOUS
 

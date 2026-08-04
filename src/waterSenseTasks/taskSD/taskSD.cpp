@@ -30,12 +30,7 @@ void taskSD(void *) {
   const bool initialized = storage.begin();
   bool filesReady = false;
   if (initialized) {
-    const ClockSnapshot clock = getClockSnapshot();
-    filesReady = storage.writeHeader() &&
-                 storage.createDataFile(measurementFile, clock.unixTime);
-    if (filesReady && getSurveyMode() == SurveyMode::GnssRaw) {
-      filesReady = storage.createGnssFile(gnssFile, clock.unixTime);
-    }
+    filesReady = storage.writeHeader();
   }
   xSemaphoreGive(sdMutex);
 
@@ -59,13 +54,16 @@ void taskSD(void *) {
 
   for (;;) {
     MeasurementRecord record{};
-    if (xQueueReceive(measurementQueue, &record, pdMS_TO_TICKS(SD_PERIOD)) ==
-        pdTRUE) {
-      if (lockSd()) {
-        if (measurementFile.fileSize() >= MAX_FILESIZE) {
-          storage.createDataFile(measurementFile, record.unixTime);
-        }
-        if (!storage.writeMeasurement(measurementFile, record)) {
+    if (xQueueReceive(measurementQueue, &record, pdMS_TO_TICKS(SD_PERIOD)) == pdTRUE) {
+      if (record.unixTime < MIN_VALID_UNIX_TIME) {
+        Serial.println("[SD] Dropping measurement with invalid timestamp");
+      }else if (lockSd()) {
+        bool fileReady = static_cast<bool>(measurementFile);
+        if (!fileReady || measurementFile.fileSize() >= MAX_FILESIZE) {
+          fileReady = storage.createDataFile(measurementFile, record.unixTime); }
+        if (!fileReady) {
+          signalFatalError("storage","measurement file creation failed");
+        } else if (!storage.writeMeasurement(measurementFile, record)) {
           signalFatalError("storage", "measurement write failed");
         }
         xSemaphoreGive(sdMutex);
@@ -77,22 +75,30 @@ void taskSD(void *) {
 
     GnssBuffer *buffer = nullptr;
     while (xQueueReceive(gnssReadyQueue, &buffer, 0) == pdTRUE) {
-      if (!lockSd()) {
-        xQueueSendToFront(gnssReadyQueue, &buffer, 0);
-        break;
-      }
-      if (!gnssFile) {
-        storage.createGnssFile(gnssFile, getClockSnapshot().unixTime);
-      } else if (gnssFile.fileSize() + buffer->length >= MAX_FILESIZE) {
-        storage.createGnssFile(gnssFile, getClockSnapshot().unixTime);
-      }
-      if (!storage.writeGnssData(gnssFile, buffer->data, buffer->length)) {
-        signalFatalError("storage", "GNSS write failed");
-      }
-      xSemaphoreGive(sdMutex);
+    const ClockSnapshot clock = getClockSnapshot();
+    if (clock.unixTime < MIN_VALID_UNIX_TIME) {
+      Serial.println("[SD] Dropping GNSS data with invalid timestamp");
       buffer->length = 0;
       xQueueSend(gnssFreeQueue, &buffer, portMAX_DELAY);
+      continue;
     }
+    if (!lockSd()) {
+      xQueueSendToFront(gnssReadyQueue, &buffer, 0);
+      break;
+    }
+    bool fileReady = static_cast<bool>(gnssFile);
+    if (!fileReady || gnssFile.fileSize() + static_cast<uint64_t>(buffer->length) >= MAX_FILESIZE) {
+      fileReady = storage.createGnssFile(gnssFile, clock.unixTime);
+    }
+    if (!fileReady) {
+      signalFatalError("storage", "GNSS file creation failed");
+    } else if (!storage.writeGnssData(gnssFile, buffer->data, buffer->length)) {
+      signalFatalError("storage", "GNSS write failed");
+    }
+    xSemaphoreGive(sdMutex);
+    buffer->length = 0;
+    xQueueSend(gnssFreeQueue, &buffer, portMAX_DELAY);
+  }
 
     const EventBits_t bits = xEventGroupGetBits(lifecycleEvents);
     const bool producersDone =
@@ -104,11 +110,11 @@ void taskSD(void *) {
         uxQueueMessagesWaiting(measurementQueue) == 0) {
       if (lockSd()) {
         const ClockSnapshot clock = getClockSnapshot();
-        if (clock.positionValid) {
+        if (clock.positionValid && clock.unixTime > MIN_VALID_UNIX_TIME) {
           storage.writeLog(clock);
         }
-        storage.close(measurementFile);
-        storage.close(gnssFile);
+        if(measurementFile)storage.close(measurementFile);
+        if(gnssFile)storage.close(gnssFile);
         xSemaphoreGive(sdMutex);
       }
       xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);

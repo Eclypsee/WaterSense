@@ -10,7 +10,7 @@
 
 namespace {
 bool setSystemUnixTime(uint32_t unixTime) {
-  if (unixTime < 1577836800UL)return false;
+  if (unixTime < MIN_VALID_UNIX_TIME)return false;
   timeval tv{};
   tv.tv_sec = static_cast<time_t>(unixTime);
   tv.tv_usec = 0;
@@ -58,7 +58,7 @@ bool rtcTimeIsValid(RTC_DS3231 &rtc, uint32_t unixTime) {
     xSemaphoreGive(i2cMutex);
   }
   // Reject the DS3231 reset/default era as an operational timestamp.
-  return !lostPower && unixTime >= 1577836800UL;
+  return !lostPower && unixTime >= MIN_VALID_UNIX_TIME;
 }
 
 bool adjustRtc(RTC_DS3231 &rtc, uint32_t unixTime) {

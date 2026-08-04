@@ -91,26 +91,31 @@ void taskRadar(void *) {
     }
     if (xTaskGetTickCount() - lastPublish >= pdMS_TO_TICKS(1000)) {
       if (sampleCount > 0) {
-        std::sort(samples, samples + sampleCount);
-        uint32_t median;
-        if (sampleCount & 1) {
-          median = samples[sampleCount / 2];
-        } else {
-          median = (samples[sampleCount / 2 - 1] + samples[sampleCount / 2]) / 2;
-        }
         const ClockSnapshot clock = getClockSnapshot();
-        const BatterySnapshot battery = getBatterySnapshot();
-        MeasurementRecord record{
-            clock.unixTime,
-            static_cast<int32_t>(median),
-            battery.voltage,
-            battery.percent
-        };
-        if (xQueueSend(measurementQueue, &record, pdMS_TO_TICKS(100)) != pdTRUE) {
-          Serial.println("[Radar] Measurement queue full; sample dropped");
+        if (clock.unixTime < MIN_VALID_UNIX_TIME) {
+          Serial.println("[Radar] Invalid clock; measurements discarded");
+          sampleCount = 0;
+        }else{
+          std::sort(samples, samples + sampleCount);
+          uint32_t median;
+          if (sampleCount & 1) {
+            median = samples[sampleCount / 2];
+          } else {
+            median = (samples[sampleCount / 2 - 1] + samples[sampleCount / 2]) / 2;
+          }
+          const BatterySnapshot battery = getBatterySnapshot();
+          MeasurementRecord record{
+              clock.unixTime,
+              static_cast<int32_t>(median),
+              battery.voltage,
+              battery.percent
+          };
+          if (xQueueSend(measurementQueue, &record, pdMS_TO_TICKS(100)) != pdTRUE) {
+            Serial.println("[Radar] Measurement queue full; sample dropped");
+          }
+          Serial.printf("[Radar] Publishing median value: %u mm\n", median);
+          sampleCount = 0;
         }
-        Serial.printf("[Radar] Publishing median value: %u mm\n", median);
-        sampleCount = 0;
       }
       lastPublish += pdMS_TO_TICKS(1000);
     }

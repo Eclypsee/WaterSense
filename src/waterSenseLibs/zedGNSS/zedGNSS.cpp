@@ -121,6 +121,24 @@ bool GNSS::poll(GnssFix &fix) {
 }
 
 bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
+  const ClockSnapshot clock = getClockSnapshot();
+  if (clock.unixTime < MIN_VALID_UNIX_TIME) {
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
+      const size_t available = device_.fileBufferAvailable();
+      if (available > 0) {
+        uint8_t discard[128];
+        size_t remaining = available;
+        while (remaining > 0) {
+          const size_t chunk = remaining > sizeof(discard) ? sizeof(discard) : remaining;
+          device_.extractFileBufferData(discard, chunk);
+          remaining -= chunk;
+        }
+      }
+
+      xSemaphoreGive(i2cMutex);
+    }
+    return false;
+  }
   GnssBuffer *buffer = nullptr;
   if (xQueueReceive(gnssFreeQueue, &buffer, freeBufferWait) != pdTRUE) {
     return false;
