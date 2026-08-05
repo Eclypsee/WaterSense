@@ -23,6 +23,7 @@ void taskVoltage(void *) {
           pdTRUE) {
         initialized = fuelGauge.begin(&Wire);
         xSemaphoreGive(i2cMutex);
+        vTaskDelay(pdMS_TO_TICKS(500));
       }
       if(initialized){
         invalidReadCount = 0;

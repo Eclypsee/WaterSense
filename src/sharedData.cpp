@@ -96,9 +96,11 @@ BatteryHistory getBatteryHistory(){
 void setBatterySnapshot(const BatterySnapshot &snapshot) {
   if (!withStateLock([&] { 
     batteryState = snapshot; 
+    Serial.printf("[Voltage] Reading %.3f V, %.1f%% valid: %u\n", snapshot.voltage, snapshot.percent, snapshot.valid);
     if (snapshot.valid && std::isfinite(snapshot.percent)) {
             lastValidBatteryPercent = snapshot.percent;
-            lastValidBatteryUnix = static_cast<uint32_t>(time(nullptr));
+            if(static_cast<uint32_t>(time(nullptr))>MIN_VALID_UNIX_TIME)lastValidBatteryUnix = static_cast<uint32_t>(time(nullptr));
+            // Serial.printf("[Voltage] last valid battery: %f and unix: %u\n", lastValidBatteryPercent, lastValidBatteryUnix);
     }
   })) {
     signalFatalError("shared state", "battery state mutex timeout");

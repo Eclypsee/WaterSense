@@ -51,7 +51,7 @@ void setup() {
   }
 
   Wire.begin(SDA, SCL, CLK);
-  Wire1.begin(33,32,CLK);
+  Wire1.begin(33,32,CLK);//using external radar requires the broken one on board to be flashed with i2c dist detector
   #ifdef DEBUG_I2C_SCAN
   for (uint8_t addr = 1; addr < 127; addr++) {
       Wire.beginTransmission(addr);

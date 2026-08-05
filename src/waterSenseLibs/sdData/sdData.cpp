@@ -28,6 +28,16 @@ bool SD_Data::begin() {
     if (SD.begin(config)) {
       SD.mkdir("/Data");
       SD.mkdir("/GNSS_Data");
+      if (!SD.exists("/GNSS_Data")) {
+        if (!SD.mkdir("/GNSS_Data")) {
+          Serial.println("[SD] Failed to create /GNSS_Data");
+        }
+      }
+      if (!SD.exists("/Data")) {
+        if (!SD.mkdir("/Data")) {
+          Serial.println("[SD] Failed to create /Data");
+        }
+      }
       return true;
     }
     Serial.printf("[SD] Initialization attempt %u failed\n", attempt + 1);
@@ -70,14 +80,12 @@ bool SD_Data::createDataFile(ExFile &file, uint32_t unixTime) {
 bool SD_Data::createGnssFile(ExFile &file, uint32_t unixTime) {
   close(file);
   char path[56];
-  snprintf(path, sizeof(path), "/GNSS_Data/%08lX_%04u.ubx",
-           static_cast<unsigned long>(unixTime), gnssFileSequence_++);
+  snprintf(path, sizeof(path), "/GNSS_Data/%08lX_%04u.ubx", static_cast<unsigned long>(unixTime), gnssFileSequence_++);
   file = SD.open(path, O_WRITE | O_CREAT | O_TRUNC);
   return static_cast<bool>(file);
 }
 
-bool SD_Data::writeMeasurement(ExFile &file,
-                               const MeasurementRecord &record) {
+bool SD_Data::writeMeasurement(ExFile &file, const MeasurementRecord &record) {
   if (!file) {
     return false;
   }
