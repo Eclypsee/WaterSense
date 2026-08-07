@@ -28,20 +28,24 @@ void taskRadar(void *) {
 
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
+      Serial.printf("[RADAR] taken i2c mutex\n");
       bool radarFound = radar.begin(address, Wire1);
       if(radarFound) {
         Serial.printf("[RADAR] Found on attempt %u\n", attempt + 1);
         radar.setCommand(SFE_XM125_DISTANCE_ENABLE_UART_LOGS);
-        vTaskDelay(pdMS_TO_TICKS(500));
         radar.setCloseRangeLeakageCancellation(true);
         radar.setReflectorShape(XM125_DISTANCE_PLANAR);
         radar.setThresholdMethod(XM125_DISTANCE_CFAR);
         radar.setPeakSorting(XM125_DISTANCE_STRONGEST);
         radar.setSignalQuality(sfe_xm125_distance_signal_quality_default);
-        int32_t errorStatus = radar.distanceSetup(MIN_RANGE_MM, MAX_RANGE_MM);
+        radar.setStart(MIN_RANGE_MM);
+        radar.setEnd(MAX_RANGE_MM);
+        int32_t errorStatus = radar.setCommand(SFE_XM125_DISTANCE_APPLY_CONFIGURATION);
+        Serial.printf("[RADAR] config application err bit: %u\n", errorStatus);
         initialized = radarFound && errorStatus == 0;
       }
       xSemaphoreGive(i2cMutex);
+      Serial.printf("[RADAR] given i2c mutex\n");
     }
     if (initialized) {
       break;
@@ -70,6 +74,7 @@ void taskRadar(void *) {
 
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
+      Serial.printf("[RADAR] setting up distance read\n");
       setupResult = radar.detectorReadingSetup();
       if (setupResult == 0) {
         radar.busyWait();

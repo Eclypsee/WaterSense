@@ -62,8 +62,8 @@ bool GNSS::begin() {
     return false;
   }
 
-  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
-      pdTRUE) {
+  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE) {
+      Serial.printf("[GNSS] Failed to grab i2c mutex\n");
     return false;
   }
 
