@@ -29,7 +29,7 @@ void taskRadar(void *) {
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
       Serial.printf("[RADAR] taken i2c mutex\n");
-      bool radarFound = radar.begin(address, Wire1);
+      bool radarFound = radar.begin(address, Wire);
       if(radarFound) {
         Serial.printf("[RADAR] Found on attempt %u\n", attempt + 1);
         radar.setCommand(SFE_XM125_DISTANCE_ENABLE_UART_LOGS);
@@ -84,6 +84,7 @@ void taskRadar(void *) {
             uint32_t distanceMm = 0;
             if (radar.getPeakDistance(index, distanceMm) == ksfTkErrOk && distanceMm >= MIN_RANGE_MM && distanceMm <= MAX_RANGE_MM && distanceMm > furthestMm) {
               furthestMm = distanceMm;
+              Serial.printf("[Radar] measured: %d\n", furthestMm);
             }
           }
         }

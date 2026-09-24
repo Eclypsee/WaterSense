@@ -21,7 +21,7 @@ bool GNSS::beginIdle(){
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
-      connected = device_.begin(Wire, 0x42);
+      connected = device_.begin(Wire1, 0x42);
       xSemaphoreGive(i2cMutex);
     }
     if (connected) {
@@ -48,7 +48,7 @@ bool GNSS::begin() {
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
-      connected = device_.begin(Wire, 0x42);
+      connected = device_.begin(Wire1, 0x42);
       xSemaphoreGive(i2cMutex);
     }
     if (connected) {

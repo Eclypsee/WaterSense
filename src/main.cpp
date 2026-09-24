@@ -32,15 +32,22 @@ void setup() {
   }
 
   const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
+  const gpio_num_t sdPin = static_cast<gpio_num_t>(SD_EN_PIN);
   const gpio_num_t radarPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);
   gpio_set_direction(gnssPin, GPIO_MODE_OUTPUT);
   gpio_set_level(gnssPin, 1);
+  gpio_set_direction(sdPin, GPIO_MODE_OUTPUT);
+  gpio_set_level(sdPin, 1);
   gpio_set_direction(radarPin, GPIO_MODE_OUTPUT);
   gpio_set_level(radarPin, 1);
   ESP_ERROR_CHECK(gpio_hold_dis(gnssPin));
+  ESP_ERROR_CHECK(gpio_hold_dis(sdPin));
   ESP_ERROR_CHECK(gpio_hold_dis(radarPin));
   gpio_deep_sleep_hold_dis();
 
+  pinMode(STAT_LED, OUTPUT);
+  digitalWrite(STAT_LED, HIGH);
+  
   Serial.printf("FreeRTOS Tick period = %u ms\n", portTICK_PERIOD_MS);
   Serial.printf("FreeRTOS TickType_t size = %u bytes\n", sizeof(TickType_t));
   
@@ -51,11 +58,11 @@ void setup() {
   }
 
   Wire.begin(SDA, SCL, CLK);
-  Wire1.begin(33,32,CLK);//using external radar requires the broken one on board to be flashed with i2c dist detector
+  Wire1.begin(25,33,CLK);//wire1 as the gnss
   #ifdef DEBUG_I2C_SCAN
   for (uint8_t addr = 1; addr < 127; addr++) {
-      Wire.beginTransmission(addr);
-      if (Wire.endTransmission() == 0) {
+      Wire1.beginTransmission(addr);
+      if (Wire1.endTransmission() == 0) {
           Serial.printf("Found device at 0x%02X\n", addr);
       }
   }

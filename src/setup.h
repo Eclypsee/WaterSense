@@ -4,6 +4,8 @@
 //configuratoin and pins
 #define LOW_BATTERY_PERCENT 10.0f
 #define GNSS_EN_PIN 21
+#define SD_EN_PIN 32
+#define STAT_LED 13
 #define RADAR_WAKE_PIN 22
 #define MAX_SAMPLES 16//maximum amount of samples the radar gets before doing a median and sending it to log
 #define MIN_RANGE_MM 1000
@@ -14,7 +16,7 @@
 #define DEBUG_NO_BATTERY
 // #define DEBUG_DISABLE_SD
 // #define DEBUG_DISABLE_RADAR
-// #define DEBUG_I2C_SCAN
+#define DEBUG_I2C_SCAN
 #define GNSS_ON
 // #define BLE_on
 // #define CONTINUOUS
