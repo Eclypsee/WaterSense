@@ -18,7 +18,7 @@ struct GnssFix {
 class GNSS {
  public:
   bool begin();
-  bool beginIdle();
+  // bool beginIdle();
   bool poll(GnssFix &fix);
   void drainFullBuffers();
   void flushBuffers();

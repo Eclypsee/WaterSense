@@ -16,7 +16,7 @@
 #define DEBUG_NO_BATTERY
 // #define DEBUG_DISABLE_SD
 // #define DEBUG_DISABLE_RADAR
-#define DEBUG_I2C_SCAN
+// #define DEBUG_I2C_SCAN
 #define GNSS_ON
 // #define BLE_on
 // #define CONTINUOUS

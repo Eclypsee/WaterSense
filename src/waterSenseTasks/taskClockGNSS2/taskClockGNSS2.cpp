@@ -102,7 +102,8 @@ void taskClockGNSS2(void *) {
       signalFatalError("clock", "neither RTC nor GNSS is available");
     }
   }else{
-    gnss.beginIdle();
+    Serial.println("[GNSS] No survey needed\n");
+    gnss.shutdown();
   }
 
   if (gnssRunning) {//wait for first fix

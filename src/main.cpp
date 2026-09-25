@@ -31,16 +31,13 @@ void setup() {
     delay(10);
   }
 
-  const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
+
   const gpio_num_t sdPin = static_cast<gpio_num_t>(SD_EN_PIN);
   const gpio_num_t radarPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);
-  gpio_set_direction(gnssPin, GPIO_MODE_OUTPUT);
-  gpio_set_level(gnssPin, 1);
   gpio_set_direction(sdPin, GPIO_MODE_OUTPUT);
   gpio_set_level(sdPin, 1);
   gpio_set_direction(radarPin, GPIO_MODE_OUTPUT);
   gpio_set_level(radarPin, 1);
-  ESP_ERROR_CHECK(gpio_hold_dis(gnssPin));
   ESP_ERROR_CHECK(gpio_hold_dis(sdPin));
   ESP_ERROR_CHECK(gpio_hold_dis(radarPin));
   gpio_deep_sleep_hold_dis();

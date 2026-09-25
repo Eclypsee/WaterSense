@@ -15,33 +15,38 @@ void onRawx(UBX_RXM_RAWX_data_t *) {
 }
 }  // namespace
 
-bool GNSS::beginIdle(){
-  device_.setFileBufferSize(fileBufferSize);
-  bool connected = false;
-  for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
-        pdTRUE) {
-      connected = device_.begin(Wire1, 0x42);
-      xSemaphoreGive(i2cMutex);
-    }
-    if (connected) {
-      Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
-      break;
-    }
-    Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
-    vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
-  }
-  if (!connected)return false;
+// bool GNSS::beginIdle(){
+//   device_.setFileBufferSize(fileBufferSize);
+//   bool connected = false;
+//   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
+//     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+//         pdTRUE) {
+//       connected = device_.begin(Wire1, 0x42);
+//       xSemaphoreGive(i2cMutex);
+//     }
+//     if (connected) {
+//       Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
+//       break;
+//     }
+//     Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
+//     vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
+//   }
+//   if (!connected)return false;
 
-  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE)return false;
-  device_.logRXMSFRBX(false);
-  device_.logRXMRAWX(false);
-  device_.softwareEnableGNSS(false);
-  xSemaphoreGive(i2cMutex);
-  return true;
-}
+//   if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE)return false;
+//   device_.logRXMSFRBX(false);
+//   device_.logRXMRAWX(false);
+//   device_.softwareEnableGNSS(false);
+//   xSemaphoreGive(i2cMutex);
+//   return true;
+// }
 
 bool GNSS::begin() {
+  const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
+  gpio_set_direction(gnssPin, GPIO_MODE_OUTPUT);
+  gpio_set_level(gnssPin, 1);
+  ESP_ERROR_CHECK(gpio_hold_dis(gnssPin));
+  
   device_.setFileBufferSize(fileBufferSize);
 
   bool connected = false;
