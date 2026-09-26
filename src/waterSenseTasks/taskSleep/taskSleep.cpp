@@ -7,8 +7,10 @@
 
 namespace {
 bool waitWithHeartbeat(uint32_t durationSeconds) {
-  const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(durationSeconds * 1000UL);
-  while (static_cast<int32_t>(deadline - xTaskGetTickCount()) > 0) {
+  //const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(durationSeconds * 1000UL);//////////////////////////CAUSED A MAJOR HEADACHE WITH INTEGER OVERFLOW
+  const TickType_t start = xTaskGetTickCount();
+  const uint64_t durationTicks = static_cast<uint64_t>(durationSeconds) * configTICK_RATE_HZ;
+  while (static_cast<uint64_t>(xTaskGetTickCount() - start) < durationTicks) {
     if (xEventGroupGetBits(lifecycleEvents) & EVENT_FATAL_ERROR) {
       return false;
     }
@@ -56,6 +58,7 @@ void taskSleep(void *) {
   const EventBits_t startupBits = EVENT_CLOCK_READY | EVENT_STORAGE_READY;
   while ((xEventGroupGetBits(lifecycleEvents) & startupBits) != startupBits) {
     if (xEventGroupGetBits(lifecycleEvents) & EVENT_FATAL_ERROR) {
+      Serial.printf("[Power] Setting SHUTDOWN at %lu ms; bits before=0x%08lx\n",static_cast<unsigned long>(millis()),static_cast<unsigned long>(xEventGroupGetBits(lifecycleEvents)));
       xEventGroupSetBits(lifecycleEvents, EVENT_SHUTDOWN_REQUEST);
       break;
     }
@@ -66,6 +69,12 @@ void taskSleep(void *) {
   ++wakeCounter;
   const SurveyMode mode = getSurveyMode();
   const uint32_t activeSeconds = mode == SurveyMode::GnssRaw ? GNSS_READ_TIME : READ_TIME_S;
+  Serial.printf(
+    "[Power] Starting active window: mode=%u, duration=%lu sec, wakeCounter=%lu\n",
+    static_cast<unsigned>(mode),
+    static_cast<unsigned long>(activeSeconds),
+    static_cast<unsigned long>(wakeCounter)
+  );
 
 #ifdef CONTINUOUS
   Serial.println("[Power] Continuous mode: deep sleep disabled");
@@ -76,6 +85,7 @@ void taskSleep(void *) {
 #else
   const bool completedActiveWindow = waitWithHeartbeat(activeSeconds);
   if (!completedActiveWindow) Serial.println("[Power] Active window ended early");
+  Serial.printf("[Power] Setting SHUTDOWN at %lu ms; bits before=0x%08lx\n",static_cast<unsigned long>(millis()),static_cast<unsigned long>(xEventGroupGetBits(lifecycleEvents)));
   xEventGroupSetBits(lifecycleEvents, EVENT_SHUTDOWN_REQUEST);
 
   const TickType_t shutdownDeadline = xTaskGetTickCount() + pdMS_TO_TICKS(SHUTDOWN_TIMEOUT_MS);
