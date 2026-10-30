@@ -102,7 +102,7 @@ void taskSleep(void *) {
   const uint64_t sleepUs = getAlignedSleepUs();
 
   const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
-  const gpio_num_t sdPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);
+  const gpio_num_t sdPin = static_cast<gpio_num_t>(SD_EN_PIN);
   const gpio_num_t radarPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);
   gpio_set_direction(gnssPin, GPIO_MODE_OUTPUT);
   gpio_set_level(gnssPin, 0);

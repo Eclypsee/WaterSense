@@ -38,7 +38,7 @@
 // Measurement and sleep cadence.
 #define READ_TIME_S  (1UL * 60UL)
 #define SLEEP_ALIGN_MIN 10UL//sleep alligns to wake the esp on ever x min to the hour. ie 1pm, 1:10pm, 1:20pm, regardless of wake time
-#define GNSS_READ_TIME (6UL * 60UL * 60UL)
+#define GNSS_READ_TIME (24UL * 60UL * 60UL)
 #define GNSS_MONTH_SECONDS (30UL * 24UL * 60UL * 60UL)
 #define FIX_DELAY (2UL * 60UL)
 
