@@ -31,7 +31,7 @@
 #define SD_SCK GPIO_NUM_18
 #define SD_MISO GPIO_NUM_19
 #define SD_MOSI GPIO_NUM_17
-#define MAX_FILESIZE (50UL * 1024UL)
+#define MAX_FILESIZE (50UL * 1024UL * 1024UL)
 #define BT_TRANSF_SIZE (64UL * 1024UL)
 #define sdWriteSize 8192
 

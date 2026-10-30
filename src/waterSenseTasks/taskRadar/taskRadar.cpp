@@ -96,35 +96,47 @@ void taskRadar(void *) {
       samples[sampleCount++] = furthestMm;
     }
     if (xTaskGetTickCount() - lastPublish >= pdMS_TO_TICKS(1000)) {
-      if (sampleCount > 0) {
-        const ClockSnapshot clock = getClockSnapshot();
-        if (clock.unixTime < MIN_VALID_UNIX_TIME) {
-          Serial.println("[Radar] Invalid clock; measurements discarded");
-          sampleCount = 0;
-        }else{
-          std::sort(samples, samples + sampleCount);
-          uint32_t median;
-          if (sampleCount & 1) {
-            median = samples[sampleCount / 2];
-          } else {
-            median = (samples[sampleCount / 2 - 1] + samples[sampleCount / 2]) / 2;
+      const ClockSnapshot clock = getClockSnapshot();
+
+      if (clock.unixTime >= MIN_VALID_UNIX_TIME) {
+          int32_t distance = -1;  // Default: no valid radar detection
+
+          if (sampleCount > 0) {
+              std::sort(samples, samples + sampleCount);
+
+              if (sampleCount & 1) {
+                  distance = samples[sampleCount / 2];
+              } else {
+                  distance = static_cast<int32_t>(
+                      (static_cast<uint64_t>(samples[sampleCount / 2 - 1]) +
+                      samples[sampleCount / 2]) / 2
+                  );
+              }
           }
+
           const BatterySnapshot battery = getBatterySnapshot();
+
           MeasurementRecord record{
               clock.unixTime,
-              static_cast<int32_t>(median),
+              distance,
               battery.voltage,
               battery.percent
           };
-          if (xQueueSend(measurementQueue, &record, pdMS_TO_TICKS(100)) != pdTRUE) {
-            Serial.println("[Radar] Measurement queue full; sample dropped");
+
+          if (xQueueSend(measurementQueue, &record,
+                        pdMS_TO_TICKS(100)) != pdTRUE) {
+              Serial.println("[Radar] Measurement queue full; sample dropped");
+          } else {
+              Serial.printf("[Radar] Publishing distance: %ld mm\n",
+                            static_cast<long>(distance));
           }
-          Serial.printf("[Radar] Publishing median value: %u mm\n", median);
-          sampleCount = 0;
-        }
+      } else {
+          Serial.println("[Radar] Invalid clock; measurement discarded");
       }
-      lastPublish += pdMS_TO_TICKS(1000);
-    }
+
+      sampleCount = 0;
+      lastPublish = xTaskGetTickCount();
+  }
 
     reportHeartbeat(TaskId::Radar);
     vTaskDelay(pdMS_TO_TICKS(RADAR_TASK_PERIOD));

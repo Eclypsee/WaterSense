@@ -115,8 +115,10 @@ void taskSD(void *) {
         uxQueueMessagesWaiting(measurementQueue) == 0) {
       if (lockSd()) {
         const ClockSnapshot clock = getClockSnapshot();
-        if (clock.positionValid && clock.unixTime > MIN_VALID_UNIX_TIME) {
-          storage.writeLog(clock);
+        if (clock.unixTime >= MIN_VALID_UNIX_TIME) {
+            if (!storage.writeLog(clock)) {
+                signalFatalError("storage", "log write failed");
+            }
         }
         if(measurementFile)storage.close(measurementFile);
         if(gnssFile)storage.close(gnssFile);
