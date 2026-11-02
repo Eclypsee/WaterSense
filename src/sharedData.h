@@ -92,6 +92,7 @@ extern QueueHandle_t gnssFreeQueue;
 extern QueueHandle_t heartbeatQueue;
 extern SemaphoreHandle_t stateMutex;
 extern SemaphoreHandle_t i2cMutex;
+extern SemaphoreHandle_t i2c_2_mutex;  // Wire1: GNSS
 extern SemaphoreHandle_t sdMutex;
 
 bool sharedDataBegin();

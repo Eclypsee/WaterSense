@@ -16,6 +16,7 @@ QueueHandle_t gnssFreeQueue = nullptr;
 QueueHandle_t heartbeatQueue = nullptr;
 SemaphoreHandle_t stateMutex = nullptr;
 SemaphoreHandle_t i2cMutex = nullptr;
+SemaphoreHandle_t i2c_2_mutex = nullptr;
 SemaphoreHandle_t sdMutex = nullptr;
 
 namespace {
@@ -38,18 +39,16 @@ bool withStateLock(Function function) {
 
 bool sharedDataBegin() {
   lifecycleEvents = xEventGroupCreate();
-  measurementQueue = xQueueCreate(MEASUREMENT_QUEUE_LENGTH,
-                                  sizeof(MeasurementRecord));
+  measurementQueue = xQueueCreate(MEASUREMENT_QUEUE_LENGTH,sizeof(MeasurementRecord));
   gnssReadyQueue = xQueueCreate(GNSS_BUFFER_COUNT, sizeof(GnssBuffer *));
   gnssFreeQueue = xQueueCreate(GNSS_BUFFER_COUNT, sizeof(GnssBuffer *));
   heartbeatQueue = xQueueCreate(HEARTBEAT_QUEUE_LENGTH, sizeof(Heartbeat));
   stateMutex = xSemaphoreCreateMutex();
   i2cMutex = xSemaphoreCreateMutex();
+  i2c_2_mutex = xSemaphoreCreateMutex();
   sdMutex = xSemaphoreCreateMutex();
 
-  if (!lifecycleEvents || !measurementQueue || !gnssReadyQueue ||
-      !gnssFreeQueue || !heartbeatQueue || !stateMutex || !i2cMutex ||
-      !sdMutex) {
+  if (!lifecycleEvents || !measurementQueue || !gnssReadyQueue || !gnssFreeQueue || !heartbeatQueue || !stateMutex || !i2cMutex || !i2c_2_mutex || !sdMutex) {
     return false;
   }
 
@@ -96,7 +95,6 @@ BatteryHistory getBatteryHistory(){
 void setBatterySnapshot(const BatterySnapshot &snapshot) {
   if (!withStateLock([&] { 
     batteryState = snapshot; 
-    Serial.printf("[Voltage] Reading %.3f V, %.1f%% valid: %u\n", snapshot.voltage, snapshot.percent, snapshot.valid);
     if (snapshot.valid && std::isfinite(snapshot.percent)) {
             lastValidBatteryPercent = snapshot.percent;
             if(static_cast<uint32_t>(time(nullptr))>MIN_VALID_UNIX_TIME)lastValidBatteryUnix = static_cast<uint32_t>(time(nullptr));
@@ -104,7 +102,9 @@ void setBatterySnapshot(const BatterySnapshot &snapshot) {
     }
   })) {
     signalFatalError("shared state", "battery state mutex timeout");
+    return;
   }
+  Serial.printf("[Voltage] Reading %.3f V, %.1f%% valid: %u\n", snapshot.voltage, snapshot.percent, snapshot.valid);
 }
 
 SurveyMode getSurveyMode() {

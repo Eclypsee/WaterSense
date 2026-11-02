@@ -87,6 +87,7 @@ void taskClockGNSS2(void *) {
   surveyRequested = wakeCounter == 0 || !rtcValid || monthElapsed;
 #endif
 
+  Serial.printf("[Survey] wakeCounter=%lu lastFixedUnix=%lu rtcUnix=%lu rtcValid=%d monthElapsed=%d surveyRequested=%d\n", (unsigned long)wakeCounter, (unsigned long)lastFixedUnix, (unsigned long)rtcUnix, rtcValid, monthElapsed, surveyRequested);
   setSurveyMode(surveyRequested ? SurveyMode::GnssRaw : SurveyMode::Normal);
   ClockSnapshot clock{rtcValid ? rtcUnix : 0, 0, 0, 0, false};
   setClockSnapshot(clock);

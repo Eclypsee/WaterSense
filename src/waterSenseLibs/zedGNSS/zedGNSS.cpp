@@ -15,32 +15,6 @@ void onRawx(UBX_RXM_RAWX_data_t *) {
 }
 }  // namespace
 
-// bool GNSS::beginIdle(){
-//   device_.setFileBufferSize(fileBufferSize);
-//   bool connected = false;
-//   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
-//     if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
-//         pdTRUE) {
-//       connected = device_.begin(Wire1, 0x42);
-//       xSemaphoreGive(i2cMutex);
-//     }
-//     if (connected) {
-//       Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
-//       break;
-//     }
-//     Serial.printf("[GNSS] Detection attempt %u failed\n", attempt + 1);
-//     vTaskDelay(pdMS_TO_TICKS(HARDWARE_RETRY_DELAY_MS));
-//   }
-//   if (!connected)return false;
-
-//   if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE)return false;
-//   device_.logRXMSFRBX(false);
-//   device_.logRXMRAWX(false);
-//   device_.softwareEnableGNSS(false);
-//   xSemaphoreGive(i2cMutex);
-//   return true;
-// }
-
 bool GNSS::begin() {
   const gpio_num_t gnssPin = static_cast<gpio_num_t>(GNSS_EN_PIN);
   gpio_set_direction(gnssPin, GPIO_MODE_OUTPUT);
@@ -51,10 +25,10 @@ bool GNSS::begin() {
 
   bool connected = false;
   for (uint8_t attempt = 0; attempt < HARDWARE_RETRY_COUNT; ++attempt) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+    if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
       connected = device_.begin(Wire1, 0x42);
-      xSemaphoreGive(i2cMutex);
+      xSemaphoreGive(i2c_2_mutex);
     }
     if (connected) {
       Serial.printf("[GNSS] Detected on attempt %u\n", attempt + 1);
@@ -67,7 +41,7 @@ bool GNSS::begin() {
     return false;
   }
 
-  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE) {
+  if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) != pdTRUE) {
       Serial.printf("[GNSS] Failed to grab i2c mutex\n");
     return false;
   }
@@ -87,7 +61,7 @@ bool GNSS::begin() {
   Serial.printf( "[GNSS] Configuration: output=%d frequency=%d SFRBX=%d RAWX=%d\n",outputOk,frequencyOk,sfrbxOk,rawxOk);
   device_.logRXMSFRBX(true);
   device_.logRXMRAWX(true);
-  xSemaphoreGive(i2cMutex);
+  xSemaphoreGive(i2c_2_mutex);
 
   initialized_ = configured;
   if (configured) {
@@ -95,11 +69,11 @@ bool GNSS::begin() {
   }
   if (!configured) {
     Serial.println("[GNSS] Receiver configuration failed");
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
+    if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) ==
         pdTRUE) {
       device_.powerOff(0);
       device_.end();
-      xSemaphoreGive(i2cMutex);
+      xSemaphoreGive(i2c_2_mutex);
     }
   }
   return configured;
@@ -107,7 +81,7 @@ bool GNSS::begin() {
 
 bool GNSS::poll(GnssFix &fix) {
   if (!initialized_ ||
-      xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+      xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
           pdTRUE) {
     return false;
   }
@@ -121,14 +95,14 @@ bool GNSS::poll(GnssFix &fix) {
   fix.valid = valid;
   sfrbxCount_ = callbackSfrbxCount;
   rawxCount_ = callbackRawxCount;
-  xSemaphoreGive(i2cMutex);
+  xSemaphoreGive(i2c_2_mutex);
   return communicationOk;
 }
 
 bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
   const ClockSnapshot clock = getClockSnapshot();
   if (clock.unixTime < MIN_VALID_UNIX_TIME) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
+    if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) == pdTRUE) {
       const size_t available = device_.fileBufferAvailable();
       if (available > 0) {
         uint8_t discard[128];
@@ -140,7 +114,7 @@ bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
         }
       }
 
-      xSemaphoreGive(i2cMutex);
+      xSemaphoreGive(i2c_2_mutex);
     }
     return false;
   }
@@ -149,7 +123,7 @@ bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
     return false;
   }
 
-  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+  if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
       pdTRUE) {
     xQueueSendToFront(gnssFreeQueue, &buffer, 0);
     return false;
@@ -167,7 +141,7 @@ bool GNSS::enqueueOneBuffer(bool allowPartial, TickType_t freeBufferWait) {
   if (bytesToExtract > 0) {
     device_.extractFileBufferData(buffer->data, bytesToExtract);
   }
-  xSemaphoreGive(i2cMutex);
+  xSemaphoreGive(i2c_2_mutex);
 
   if (bytesToExtract == 0) {
     buffer->length = 0;
@@ -202,13 +176,13 @@ bool GNSS::shutdown() {
     return true;
   }
 
-  if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
+  if (xSemaphoreTake(i2c_2_mutex, pdMS_TO_TICKS(I2C_MUTEX_TIMEOUT_MS)) !=
       pdTRUE) {
     return false;
   }
   const bool poweredOff = device_.powerOff(0);
   device_.end();
-  xSemaphoreGive(i2cMutex);
+  xSemaphoreGive(i2c_2_mutex);
   initialized_ = false;
   if(poweredOff){Serial.println("[GNSS] Receiver shut down successfully");}else{Serial.println("[GNSS] Receiver failed to shut down");}
   return poweredOff;
