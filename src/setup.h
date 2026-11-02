@@ -2,6 +2,7 @@
 #define WATERSENSE_SETUP_H
 
 //configuratoin and pins
+#define CPU_FREQ_MHZ 40
 #define LOW_BATTERY_PERCENT 10.0f
 #define GNSS_EN_PIN 21
 #define SD_EN_PIN 32

@@ -56,6 +56,7 @@ void taskSD(void *) {
   #endif
 
   xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_READY);
+  Serial.println("[SD] Initialized successfully; storage ready");
 
   for (;;) {
     MeasurementRecord record{};
@@ -70,6 +71,8 @@ void taskSD(void *) {
           signalFatalError("storage","measurement file creation failed");
         } else if (!storage.writeMeasurement(measurementFile, record)) {
           signalFatalError("storage", "measurement write failed");
+        }else{
+          Serial.printf("[SD] Measurement written: unix=%lu\n", static_cast<unsigned long>(record.unixTime));
         }
         xSemaphoreGive(sdMutex);
       } else {
@@ -99,6 +102,8 @@ void taskSD(void *) {
       signalFatalError("storage", "GNSS file creation failed");
     } else if (!storage.writeGnssData(gnssFile, buffer->data, buffer->length)) {
       signalFatalError("storage", "GNSS write failed");
+    }else {
+      Serial.printf("[SD] GNSS written: %u bytes\n", static_cast<unsigned>(buffer->length));
     }
     xSemaphoreGive(sdMutex);
     buffer->length = 0;
@@ -122,6 +127,7 @@ void taskSD(void *) {
         }
         if(measurementFile)storage.close(measurementFile);
         if(gnssFile)storage.close(gnssFile);
+        Serial.println("[SD] Files closed; shutdown complete");
         xSemaphoreGive(sdMutex);
       }
       xEventGroupSetBits(lifecycleEvents, EVENT_STORAGE_STOPPED);

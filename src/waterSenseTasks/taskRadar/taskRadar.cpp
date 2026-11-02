@@ -16,6 +16,17 @@ void taskRadar(void *) {
     reportHeartbeat(TaskId::Radar);
     vTaskDelay(pdMS_TO_TICKS(100));
   }
+  if (getSurveyMode() == SurveyMode::GnssRaw) {
+    const gpio_num_t radarPin = static_cast<gpio_num_t>(RADAR_WAKE_PIN);
+    gpio_set_direction(radarPin, GPIO_MODE_OUTPUT);
+    gpio_set_level(radarPin, 0);
+
+    Serial.println("[Radar] GNSS survey mode; radar disabled");
+
+    xEventGroupSetBits(lifecycleEvents, EVENT_RADAR_STOPPED);
+    reportHeartbeat(TaskId::Radar);
+    vTaskSuspend(nullptr);
+  }
 
   SparkFunXM125Distance radar;
   constexpr uint8_t address = SFE_XM125_I2C_ADDRESS;

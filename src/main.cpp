@@ -13,10 +13,8 @@
 #include "waterSenseTasks/taskWatch/taskWatch.h"
 
 namespace {
-bool createTask(TaskFunction_t function, const char *name,
-                uint32_t stackDepth, UBaseType_t priority) {
-  if (xTaskCreate(function, name, stackDepth, nullptr, priority, nullptr) ==
-      pdPASS) {
+bool createTask(TaskFunction_t function, const char *name, uint32_t stackDepth, UBaseType_t priority) {
+  if (xTaskCreate(function, name, stackDepth, nullptr, priority, nullptr) == pdPASS) {
     return true;
   }
   Serial.printf("[FATAL] Unable to create task: %s\n", name);
@@ -25,6 +23,8 @@ bool createTask(TaskFunction_t function, const char *name,
 }  // namespace
 
 void setup() {
+  setCpuFrequencyMhz(CPU_FREQ_MHZ);//SET CPU FREQUENCY
+  delay(100);
   Serial.begin(115200);
   const uint32_t serialDeadline = millis() + 2000;
   while (!Serial && static_cast<int32_t>(serialDeadline - millis()) > 0) {
